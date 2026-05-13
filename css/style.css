@@ -141,7 +141,7 @@ a:hover {
 .site-header {
   background-color: var(--color-navy);
   color:            var(--color-white);
-  padding:          var(--space-lg) var(--space-xl);
+  padding:          6px var(--space-xl);
   box-shadow:       0 2px 6px rgba(0,0,0,0.3);
   flex-shrink: 0;
 }
@@ -154,17 +154,17 @@ a:hover {
 .header-brand {
   display:     flex;
   align-items: center;
-  gap:         var(--space-md);
+  gap:         var(--space-sm);
 }
 
 .header-icon {
-  font-size: 2.4rem;
+  font-size: 1.7rem;
   line-height: 1;
   flex-shrink: 0;
 }
 
 .site-title {
-  font-size:   var(--font-size-2xl);
+  font-size:   var(--font-size-xl);
   font-weight: 700;
   color:       var(--color-white);
   letter-spacing: -0.01em;
@@ -173,7 +173,7 @@ a:hover {
 .site-tagline {
   font-size:  var(--font-size-sm);
   color:      var(--color-amber-light);
-  margin-top: var(--space-xs);
+  margin-top: 0;
   font-style: italic;
 }
 
@@ -182,8 +182,8 @@ a:hover {
    ------------------------------------------------------------ */
 .search-section {
   background:   var(--color-white);
-  border-bottom: 3px solid var(--color-light-gray);
-  padding:       var(--space-lg) var(--space-xl);
+  border-bottom: 2px solid var(--color-light-gray);
+  padding:       8px var(--space-xl);
   flex-shrink: 0;
 }
 
@@ -194,10 +194,10 @@ a:hover {
 
 .search-label {
   display:     block;
-  font-size:   var(--font-size-base);
+  font-size:   var(--font-size-sm);
   font-weight: 700;
   color:       var(--color-navy);
-  margin-bottom: var(--space-sm);
+  margin-bottom: 2px;
 }
 
 .search-row {
@@ -210,8 +210,8 @@ a:hover {
   flex:           1;
   font-family:    var(--font-body);
   font-size:      var(--font-size-base);
-  padding:        var(--space-md) var(--space-lg);
-  min-height:     var(--min-target);
+  padding:        7px var(--space-md);
+  min-height:     40px;
   border:         2px solid var(--color-navy);
   border-radius:  var(--radius-md);
   color:          var(--color-dark-text);
@@ -238,9 +238,9 @@ a:hover {
   font-family:   var(--font-body);
   font-size:     var(--font-size-base);
   font-weight:   700;
-  padding:       var(--space-md) var(--space-xl);
-  min-height:    var(--min-target);
-  min-width:     200px;
+  padding:       7px var(--space-xl);
+  min-height:    40px;
+  min-width:     170px;
   background:    var(--color-amber);
   color:         var(--color-navy-dark);
   border:        2px solid var(--color-amber-dark);
@@ -270,7 +270,7 @@ a:hover {
   display:     flex;
   align-items: center;
   justify-content: space-between;
-  margin-top:  var(--space-sm);
+  margin-top:  3px;
   gap:         var(--space-md);
   flex-wrap:   wrap;
 }
@@ -775,7 +775,7 @@ a:hover {
   }
 
   .site-header {
-    padding: var(--space-md) var(--space-md);
+    padding: 4px var(--space-md);
   }
 
   .site-title {
