@@ -450,13 +450,20 @@
     routeSteps.innerHTML   = '';
     if (map) BostonMap.clearRoute();
 
-    // Use OSRM driving for buses (follows roads), foot for rail
-    const profile = opt.route.type === 3 ? 'driving' : 'foot';
-    const [walkToStop, walkFromStop, transitRoute] = await Promise.all([
+    // Rail (0,1,2): use actual MBTA shape; Bus (3): use OSRM driving along roads
+    const isRail = opt.route.type === 0 || opt.route.type === 1 || opt.route.type === 2;
+    const [walkToStop, walkFromStop, mbtaShape, busOSRM] = await Promise.all([
       BostonAPI.fetchOSRMRoute(currentLocation.lat, currentLocation.lng, opt.oStop.lat, opt.oStop.lng),
       BostonAPI.fetchOSRMRoute(opt.dStop.lat, opt.dStop.lng, currentDest.lat, currentDest.lng),
-      BostonAPI.fetchOSRMRoute(opt.oStop.lat, opt.oStop.lng, opt.dStop.lat, opt.dStop.lng, profile),
+      isRail  ? BostonAPI.fetchMBTARouteShape(opt.route.id, opt.oStop.lat, opt.oStop.lng, opt.dStop.lat, opt.dStop.lng) : Promise.resolve(null),
+      !isRail ? BostonAPI.fetchOSRMRoute(opt.oStop.lat, opt.oStop.lng, opt.dStop.lat, opt.dStop.lng, 'driving')        : Promise.resolve(null),
     ]);
+
+    // Best available transit geometry: MBTA shape → OSRM → straight line fallback
+    const transitGeom = mbtaShape
+      || (busOSRM ? busOSRM.geometry : null)
+      || { type: 'LineString', coordinates: [[opt.oStop.lng, opt.oStop.lat], [opt.dStop.lng, opt.dStop.lat]] };
+    const transitRoute = busOSRM || null;
 
     const transitColor = opt.route.color && opt.route.color !== '000000' ? '#' + opt.route.color : '#1565c0';
     const icon         = ROUTE_TYPE_ICON[opt.route.type] || '🚌';
@@ -464,18 +471,16 @@
 
     // Draw on map
     if (map) {
-      if (walkToStop)   BostonMap.drawRoute(walkToStop.geometry,   '#1a5c3a',    true);
-      if (transitRoute) BostonMap.drawRoute(transitRoute.geometry, transitColor, false);
-      else              BostonMap.drawRoute({ type:'LineString', coordinates:[[opt.oStop.lng,opt.oStop.lat],[opt.dStop.lng,opt.dStop.lat]] }, transitColor, false);
-      if (walkFromStop) BostonMap.drawRoute(walkFromStop.geometry, '#1a5c3a',    true);
+      if (walkToStop) BostonMap.drawRoute(walkToStop.geometry, '#1a5c3a', true);
+      BostonMap.drawRoute(transitGeom, transitColor, false);
+      if (walkFromStop) BostonMap.drawRoute(walkFromStop.geometry, '#1a5c3a', true);
       BostonMap.fitRoutes();
     }
 
     // Build combined coords for ETA tracking
     const allCoords = [];
-    if (walkToStop)   allCoords.push(...walkToStop.geometry.coordinates);
-    if (transitRoute) allCoords.push(...transitRoute.geometry.coordinates);
-    else              allCoords.push([opt.oStop.lng,opt.oStop.lat],[opt.dStop.lng,opt.dStop.lat]);
+    if (walkToStop)  allCoords.push(...walkToStop.geometry.coordinates);
+    allCoords.push(...transitGeom.coordinates);
     if (walkFromStop) allCoords.push(...walkFromStop.geometry.coordinates);
     navRouteCoords = allCoords;
 
