@@ -483,10 +483,11 @@
    * @returns {Promise<{distance, duration, geometry, steps}|null>}
    *   distance in metres, duration in seconds, geometry is GeoJSON LineString
    */
-  async function fetchOSRMRoute(fromLat, fromLng, toLat, toLng) {
+  async function fetchOSRMRoute(fromLat, fromLng, toLat, toLng, profile) {
+    profile = profile || 'foot';
     try {
       const coords = `${fromLng},${fromLat};${toLng},${toLat}`;
-      const url = `${OSRM_BASE}/foot/${coords}?steps=true&overview=full&geometries=geojson`;
+      const url = `${OSRM_BASE}/${profile}/${coords}?steps=true&overview=full&geometries=geojson`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
       const data = await res.json();

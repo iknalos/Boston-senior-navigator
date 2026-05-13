@@ -920,9 +920,11 @@ a:hover {
 }
 
 .directions-link--walk    { background: #1a5c3a; }
+.directions-link--car     { background: #1565c0; }
 .directions-link--transit { background: var(--color-navy); }
 
 .directions-link--walk:hover    { background: #124029; color: var(--color-white); }
+.directions-link--car:hover     { background: #0d47a1; color: var(--color-white); }
 .directions-link--transit:hover { background: var(--color-navy-dark); color: var(--color-white); }
 
 /* ------------------------------------------------------------
@@ -1140,6 +1142,103 @@ a:hover {
 .pred-now {
   font-weight: 700;
   color:       #b71c1c;
+}
+
+/* ------------------------------------------------------------
+   16. Live Navigation Controls
+   ------------------------------------------------------------ */
+
+/* Start navigation button */
+.nav-start-btn {
+  font-family:   var(--font-body);
+  font-size:     15px;
+  font-weight:   700;
+  color:         #fff;
+  background:    #34a853;
+  border:        none;
+  border-radius: var(--radius-md);
+  padding:       var(--space-md);
+  min-height:    48px;
+  width:         100%;
+  cursor:        pointer;
+  letter-spacing: 0.02em;
+}
+.nav-start-btn:hover    { background: #2e7d32; }
+.nav-start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Active navigation bar */
+.nav-bar {
+  display:        flex;
+  align-items:    center;
+  justify-content: space-between;
+  background:     var(--color-navy);
+  border-radius:  var(--radius-md);
+  padding:        var(--space-sm) var(--space-md);
+  gap:            var(--space-sm);
+}
+
+.nav-eta-block {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+}
+
+.nav-eta-time {
+  font-size:   20px;
+  font-weight: 700;
+  color:        #fff;
+  line-height:  1;
+}
+
+.nav-eta-dist {
+  font-size:  12px;
+  color:      rgba(255,255,255,0.75);
+}
+
+.nav-stop-btn {
+  font-family:   var(--font-body);
+  font-size:     14px;
+  font-weight:   700;
+  color:         #fff;
+  background:    #b71c1c;
+  border:        none;
+  border-radius: var(--radius-sm);
+  padding:       var(--space-sm) var(--space-lg);
+  min-height:    38px;
+  cursor:        pointer;
+  white-space:   nowrap;
+}
+.nav-stop-btn:hover { background: #7f0000; }
+
+/* ── Live GPS dot ── */
+.live-dot-wrapper {
+  background: none !important;
+  border:     none !important;
+}
+
+.live-dot {
+  width:         20px;
+  height:        20px;
+  background:    #4285f4;
+  border-radius: 50%;
+  border:        3px solid #fff;
+  box-shadow:    0 2px 8px rgba(0,0,0,0.4);
+  position:      relative;
+}
+
+/* Expanding ring pulse */
+.live-dot::before {
+  content:       '';
+  position:      absolute;
+  inset:         -7px;
+  border-radius: 50%;
+  background:    rgba(66,133,244,0.25);
+  animation:     nav-ring 2s ease-out infinite;
+}
+
+@keyframes nav-ring {
+  0%   { transform: scale(0.7); opacity: 0.9; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 
 /* ============================================================

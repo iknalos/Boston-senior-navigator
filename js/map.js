@@ -34,6 +34,9 @@
   // Route layers (walking/transit polylines drawn on click)
   var _routeLayers = [];
 
+  // Live GPS marker
+  var _liveMarker = null;
+
   // ---------------------------------------------------------------------------
   // Helper: create a DivIcon with an emoji and an accessible label
   // ---------------------------------------------------------------------------
@@ -428,6 +431,68 @@
   }
 
   /**
+   * setLivePosition(lat, lng)
+   * Creates or moves the pulsing blue GPS dot.
+   */
+  function setLivePosition(lat, lng) {
+    if (!_map) return;
+    if (_liveMarker) {
+      _liveMarker.setLatLng([lat, lng]);
+    } else {
+      var icon = L.divIcon({
+        html: '<div class="live-dot"></div>',
+        className: 'live-dot-wrapper',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      });
+      _liveMarker = L.marker([lat, lng], { icon: icon, zIndexOffset: 3000 }).addTo(_map);
+    }
+  }
+
+  /**
+   * clearLivePosition()
+   * Removes the GPS dot.
+   */
+  function clearLivePosition() {
+    if (_liveMarker && _map) {
+      _map.removeLayer(_liveMarker);
+      _liveMarker = null;
+    }
+  }
+
+  /**
+   * panToLive(lat, lng)
+   * Smoothly pans the map to keep the live dot centred.
+   */
+  function panToLive(lat, lng) {
+    if (!_map) return;
+    _map.panTo([lat, lng], { animate: true, duration: 0.6, easeLinearity: 0.5 });
+  }
+
+  /**
+   * updateRouteProgress(allCoords, fromIndex)
+   * Redraws the route split at fromIndex:
+   *   completed portion → grey
+   *   remaining portion → bright blue
+   * allCoords is an array of GeoJSON [lng, lat] pairs.
+   */
+  function updateRouteProgress(allCoords, fromIndex) {
+    clearRoute();
+    if (fromIndex > 0) {
+      drawRoute(
+        { type: 'LineString', coordinates: allCoords.slice(0, fromIndex + 1) },
+        '#9e9e9e', false
+      );
+    }
+    if (fromIndex < allCoords.length - 1) {
+      drawRoute(
+        { type: 'LineString', coordinates: allCoords.slice(fromIndex) },
+        '#1a73e8', false
+      );
+    }
+  }
+
+  /**
    * drawHoverLine(destLat, destLng)
    * Draws a dashed blue polyline from the user's home marker to the destination.
    * Requires setUserLocation() to have been called first.
@@ -513,6 +578,10 @@
     drawRoute: drawRoute,
     clearRoute: clearRoute,
     fitRoutes: fitRoutes,
+    setLivePosition: setLivePosition,
+    clearLivePosition: clearLivePosition,
+    panToLive: panToLive,
+    updateRouteProgress: updateRouteProgress,
   };
 
 }(window));

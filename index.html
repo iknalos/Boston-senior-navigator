@@ -15,7 +15,7 @@
   />
 
   <!-- App styles -->
-  <link rel="stylesheet" href="css/style.css?v=10" />
+  <link rel="stylesheet" href="css/style.css?v=11" />
 </head>
 <body>
 
@@ -155,10 +155,13 @@
 
         <div class="directions-links">
           <button id="directions-walk-btn" class="directions-link directions-link--walk" type="button">
-            &#x1F6B6; Show Walking Route
+            &#x1F6B6; Walking Route
+          </button>
+          <button id="directions-car-btn" class="directions-link directions-link--car" type="button">
+            &#x1F697; Driving Route
           </button>
           <button id="directions-transit-btn" class="directions-link directions-link--transit" type="button">
-            &#x1F68C; Show Transit Route
+            &#x1F68C; Transit Route
           </button>
         </div>
 
@@ -171,14 +174,34 @@
 
       </div><!-- /#directions-panel -->
 
-      <!-- Route panel — step-by-step walking or transit itinerary -->
+      <!-- Route panel — step-by-step directions + live navigation -->
       <div id="route-panel" class="route-panel" hidden>
+
         <button id="route-back-btn" class="directions-back-btn" type="button">
           &#8592; Back to Options
         </button>
+
         <div id="route-mode-label" class="route-mode-label"></div>
         <div id="route-summary"    class="route-summary"></div>
-        <div id="route-steps"      class="route-steps"></div>
+
+        <!-- Live navigation bar (hidden until Start is pressed) -->
+        <div id="nav-bar" class="nav-bar" hidden>
+          <div class="nav-eta-block">
+            <span id="nav-eta-time" class="nav-eta-time">—</span>
+            <span id="nav-eta-dist" class="nav-eta-dist"></span>
+          </div>
+          <button id="nav-stop-btn" class="nav-stop-btn" type="button">
+            &#9632; Stop
+          </button>
+        </div>
+
+        <!-- Start navigation button (visible when route is ready) -->
+        <button id="nav-start-btn" class="nav-start-btn" type="button">
+          &#9654; Start Live Navigation
+        </button>
+
+        <div id="route-steps" class="route-steps"></div>
+
       </div><!-- /#route-panel -->
 
     </aside><!-- /.sidebar -->
@@ -204,15 +227,15 @@
       &mdash; City of Boston Open Data
     </p>
   </footer>
-  <div class="site-version" aria-label="Version 14">v14</div>
+  <div class="site-version" aria-label="Version 15">v15</div>
 
   <!-- Leaflet JS (no integrity check to avoid SRI blocking) -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- App scripts (order matters) -->
-  <script src="js/api.js?v=14"></script>
-  <script src="js/map.js?v=14"></script>
-  <script src="js/app.js?v=14"></script>
+  <script src="js/api.js?v=15"></script>
+  <script src="js/map.js?v=15"></script>
+  <script src="js/app.js?v=15"></script>
 
 </body>
 </html>
