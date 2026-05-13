@@ -310,11 +310,11 @@
     onRouteReady();
   }
 
-  // ── Transit route (Google Maps–style: pick route → draw path) ────
+  // ── Transit route — pick Train or Bus, then draw full path ────────
   const ROUTE_TYPE_ICON  = { 0:'🚋', 1:'🚇', 2:'🚂', 3:'🚌', 4:'⛴️' };
   const TRANSIT_SPEED_MPH = { 0:15, 1:22, 2:35, 3:10, 4:18 };
 
-  // Phase 1: fetch nearby route options and show as selectable cards
+  // Phase 1: show Train and Bus cards
   async function showTransitRoute() {
     if (!currentLocation || !currentDest) return;
     navMode = 'transit';
@@ -322,48 +322,55 @@
     navDestLng = currentDest.lng;
 
     showPanel(routePanel);
-    routeModeLabel.textContent = '🚌 Transit Route';
-    routeSummary.innerHTML = '<div class="transit-total">Finding nearby routes…</div>';
+    routeModeLabel.textContent = '🚌 Transit Options';
+    routeSummary.innerHTML = '<div class="transit-total">Finding train &amp; bus options…</div>';
     routeSteps.innerHTML   = '';
     navBar.setAttribute('hidden', '');
     navStartBtn.setAttribute('hidden', '');
     navRouteCoords = [];
     if (map) BostonMap.clearRoute();
 
-    let options = [];
-    try { options = await _fetchTransitOptions(); } catch (e) { console.error(e); }
+    let cards = [];
+    try { cards = await _fetchTransitCards(); } catch (e) { console.error('transit cards error:', e); }
 
-    if (!options.length) {
-      routeSummary.innerHTML = '<div class="transit-total">No routes found</div>';
-      routeSteps.innerHTML   = '<p class="transit-no-routes">No MBTA routes connect these locations within walking distance. Try a closer destination or check the MBTA app.</p>';
+    if (!cards.length) {
+      routeSummary.innerHTML = '<div class="transit-total">No transit nearby</div>';
+      routeSteps.innerHTML   = '<p class="transit-no-routes">No MBTA stops found within 1 mile of these locations. Try a closer destination or check the MBTA app.</p>';
       return;
     }
 
-    routeSummary.innerHTML = '<div class="transit-total">Tap a route to plan it</div>';
+    routeSummary.innerHTML = '<div class="transit-total">Choose your mode</div>';
     routeSteps.innerHTML   = '';
 
-    options.forEach(function (opt) {
+    cards.forEach(function (opt) {
       const card = document.createElement('div');
       card.className = 'transit-option-card';
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');
 
-      const bg      = opt.route.color && opt.route.color !== '000000' ? '#' + opt.route.color : '#1a3a5c';
-      const icon    = ROUTE_TYPE_ICON[opt.route.type] || '🚌';
-      const depText = opt.nextDepartureMins !== null
+      const isRail  = opt.type === 'train';
+      const modeIcon = isRail ? '🚇' : '🚌';
+      const modeLabel = isRail ? 'Train' : 'Bus';
+      const bg       = opt.route.color && opt.route.color !== '000000' ? '#' + opt.route.color : '#1a3a5c';
+      const depText  = opt.nextDepartureMins !== null
         ? (opt.nextDepartureMins <= 1 ? 'Now' : 'in ' + opt.nextDepartureMins + ' min')
-        : '— check app';
+        : '—';
 
       card.innerHTML =
         '<div class="toc-header">'
+        + '<span class="toc-mode-icon">' + modeIcon + '</span>'
+        + '<span class="toc-mode-label">' + modeLabel + '</span>'
         + '<span class="toc-badge" style="background:' + bg + '">' + _esc(opt.route.name) + '</span>'
-        + '<span class="toc-name">' + icon + ' ' + _esc(opt.route.longName || opt.route.name) + '</span>'
+        + '<span class="toc-dep" style="margin-left:auto">Next: ' + depText + '</span>'
         + '</div>'
-        + '<div class="toc-row">'
-        + '<span class="toc-total">~' + opt.estimatedTotalMins + ' min total</span>'
-        + '<span class="toc-dep">Next: ' + depText + '</span>'
+        + '<div class="toc-route-detail">'
+        + '🚶 <strong>' + opt.walkToMins + ' min</strong> → '
+        + _esc(opt.oStop.name)
+        + ' → ' + modeIcon + ' <strong>' + opt.transitMins + ' min</strong> → '
+        + _esc(opt.dStop.name)
+        + (opt.walkFromMins > 0 ? ' → 🚶 <strong>' + opt.walkFromMins + ' min</strong>' : '')
         + '</div>'
-        + '<div class="toc-stops">' + _esc(opt.oStop.name) + ' → ' + _esc(opt.dStop.name) + '</div>';
+        + '<div class="toc-row"><span class="toc-total">~' + opt.estimatedTotalMins + ' min total</span></div>';
 
       function go() { _planSelectedTransit(opt); }
       card.addEventListener('click', go);
@@ -372,70 +379,74 @@
     });
   }
 
-  // Fetch up to 5 transit route options.
-  // Uses 1-mile radius on both sides so subway stations are never missed when
-  // bus stops happen to be closer to the origin/destination than the subway stop.
-  async function _fetchTransitOptions() {
+  // Build one Train card and one Bus card by filtering stops by route type.
+  // This avoids the "common routes" problem — we just find the nearest stop
+  // of each type on both ends independently.
+  async function _fetchTransitCards() {
     const fl = currentLocation.lat, fg = currentLocation.lng;
     const tl = currentDest.lat,     tg = currentDest.lng;
 
-    // 0.015° ≈ 1 mile — wide enough to reach subway stations from anywhere in the area
-    const [originStops, destStops] = await Promise.all([
-      BostonAPI.fetchMBTANearbyStops(fl, fg, 0.015),
-      BostonAPI.fetchMBTANearbyStops(tl, tg, 0.015),
-    ]);
-    if (!originStops.length) return [];
-
-    const oStops = originStops.slice(0, 6);
-    const dStops = destStops.slice(0, 6);
-
-    // Fetch routes for all stops + predictions for origin stops in parallel
-    const [oRouteArrays, dRouteArrays, predArrays] = await Promise.all([
-      Promise.all(oStops.map(function (s) { return BostonAPI.fetchMBTARoutesForStop(s.id); })),
-      Promise.all(dStops.map(function (s) { return BostonAPI.fetchMBTARoutesForStop(s.id); })),
-      Promise.all(oStops.map(function (s) { return BostonAPI.fetchMBTAPredictions(s.id); })),
+    // Fetch train stops (types 0=light rail, 1=subway) and bus stops (type 3) near both ends
+    const [trainO, trainD, busO, busD] = await Promise.all([
+      BostonAPI.fetchNearbyStopsByType(fl, fg, '0,1', 0.015),  // subway within 1 mi of origin
+      BostonAPI.fetchNearbyStopsByType(tl, tg, '0,1', 0.015),  // subway within 1 mi of dest
+      BostonAPI.fetchNearbyStopsByType(fl, fg, '3',   0.0072), // bus within 0.5 mi of origin
+      BostonAPI.fetchNearbyStopsByType(tl, tg, '3',   0.0072), // bus within 0.5 mi of dest
     ]);
 
-    // Map: routeId → closest destination stop that serves that route
-    const dRouteMap = new Map();
-    dStops.forEach(function (dStop, di) {
-      dRouteArrays[di].forEach(function (route) {
-        if (!dRouteMap.has(route.id)) dRouteMap.set(route.id, dStop);
-      });
-    });
+    const cards = [];
 
-    // Build options: origin routes that also appear at a destination stop
-    const seen = new Set();
-    const options = [];
-    oStops.forEach(function (oStop, oi) {
-      oRouteArrays[oi].forEach(function (route) {
-        const dStop = dRouteMap.get(route.id);
-        if (!dStop) return;
+    // Train card
+    if (trainO.length && trainD.length) {
+      const oStop = trainO[0];
+      const dStop = trainD[0];
+      const [routes, preds] = await Promise.all([
+        BostonAPI.fetchMBTARoutesForStop(oStop.id),
+        BostonAPI.fetchMBTAPredictions(oStop.id),
+      ]);
+      const subRoutes = routes.filter(function (r) { return r.type === 0 || r.type === 1; });
+      const route = subRoutes[0] || routes[0] || { id:'T', name:'T', longName:'Train', type:1, color:'1a3a5c' };
+      const filtPreds = preds.filter(function (p) { return p.routeId === route.id; });
 
-        const key = route.id + '|' + oStop.id + '|' + dStop.id;
-        if (seen.has(key)) return;
-        seen.add(key);
+      const walkToMins   = Math.max(1, Math.round(oStop.distance / 3 * 60));
+      const walkFromMins = Math.max(0, Math.round(dist(dStop.lat, dStop.lng, tl, tg) / 3 * 60));
+      const transitDist  = dist(oStop.lat, oStop.lng, dStop.lat, dStop.lng);
+      const transitMins  = Math.max(1, Math.round(transitDist / (TRANSIT_SPEED_MPH[route.type] || 15) * 60));
+      const nextDep      = filtPreds.length > 0 ? Math.max(0, filtPreds[0].minutesAway) : null;
+      const waitMins     = nextDep !== null ? nextDep : 5;
 
-        const preds             = (predArrays[oi] || []).filter(function (p) { return p.routeId === route.id; });
-        const transitDist       = dist(oStop.lat, oStop.lng, dStop.lat, dStop.lng);
-        const speedMph          = TRANSIT_SPEED_MPH[route.type] || 10;
-        const transitMins       = Math.max(1, Math.round(transitDist / speedMph * 60));
-        const walkToMins        = Math.max(1, Math.round(oStop.distance / 3 * 60));
-        const walkFromMins      = Math.max(0, Math.round(dist(dStop.lat, dStop.lng, tl, tg) / 3 * 60));
-        const nextDepartureMins = preds.length > 0 ? Math.max(0, preds[0].minutesAway) : null;
-        const waitMins          = nextDepartureMins !== null ? nextDepartureMins : 5;
+      cards.push({ type:'train', route, oStop, dStop,
+        walkToMins, transitMins, walkFromMins, waitMins,
+        nextDepartureMins: nextDep, allPreds: filtPreds,
+        estimatedTotalMins: walkToMins + waitMins + transitMins + walkFromMins });
+    }
 
-        options.push({
-          route, oStop, dStop,
-          walkToMins, transitMins, walkFromMins,
-          nextDepartureMins, allPreds: preds,
-          estimatedTotalMins: walkToMins + waitMins + transitMins + walkFromMins,
-        });
-      });
-    });
+    // Bus card
+    if (busO.length && busD.length) {
+      const oStop = busO[0];
+      const dStop = busD[0];
+      const [routes, preds] = await Promise.all([
+        BostonAPI.fetchMBTARoutesForStop(oStop.id),
+        BostonAPI.fetchMBTAPredictions(oStop.id),
+      ]);
+      const busRoutes = routes.filter(function (r) { return r.type === 3; });
+      const route = busRoutes[0] || routes[0] || { id:'bus', name:'Bus', longName:'Bus', type:3, color:'1a3a5c' };
+      const filtPreds = preds.filter(function (p) { return p.routeId === route.id; });
 
-    options.sort(function (a, b) { return a.estimatedTotalMins - b.estimatedTotalMins; });
-    return options.slice(0, 5);
+      const walkToMins   = Math.max(1, Math.round(oStop.distance / 3 * 60));
+      const walkFromMins = Math.max(0, Math.round(dist(dStop.lat, dStop.lng, tl, tg) / 3 * 60));
+      const transitDist  = dist(oStop.lat, oStop.lng, dStop.lat, dStop.lng);
+      const transitMins  = Math.max(1, Math.round(transitDist / 10 * 60));
+      const nextDep      = filtPreds.length > 0 ? Math.max(0, filtPreds[0].minutesAway) : null;
+      const waitMins     = nextDep !== null ? nextDep : 5;
+
+      cards.push({ type:'bus', route, oStop, dStop,
+        walkToMins, transitMins, walkFromMins, waitMins,
+        nextDepartureMins: nextDep, allPreds: filtPreds,
+        estimatedTotalMins: walkToMins + waitMins + transitMins + walkFromMins });
+    }
+
+    return cards;
   }
 
   // Phase 2: plan and draw the full route for a selected option
@@ -478,15 +489,21 @@
     if (walkFromStop) allCoords.push(...walkFromStop.geometry.coordinates);
     navRouteCoords = allCoords;
 
-    // Times
+    // Times and distances
     const wt  = walkToStop   ? Math.round(walkToStop.duration  / 60) : opt.walkToMins;
     const wf  = walkFromStop ? Math.round(walkFromStop.duration / 60) : opt.walkFromMins;
     const wa  = opt.nextDepartureMins !== null ? opt.nextDepartureMins : 5;
     const tr  = opt.transitMins;
     const tot = wt + wa + tr + wf;
 
+    const walkToDist    = walkToStop   ? walkToStop.distance  / 1609.34 : opt.oStop.distance;
+    const walkFromDist  = walkFromStop ? walkFromStop.distance / 1609.34 : dist(opt.dStop.lat, opt.dStop.lng, tl, tg);
+    const transitDistMi = dist(opt.oStop.lat, opt.oStop.lng, opt.dStop.lat, opt.dStop.lng);
+    const totalMi       = (walkToDist + transitDistMi + walkFromDist).toFixed(1);
+    const eta           = new Date(Date.now() + tot * 60000).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+
     routeSummary.innerHTML =
-      '<div class="transit-total">~' + tot + ' min total</div>'
+      '<div class="transit-total">~' + tot + ' min · ' + totalMi + ' mi · ETA ' + eta + '</div>'
       + '<div class="transit-breakdown">'
       + '<span class="tb-seg tb-walk">🚶 ' + wt + ' min</span>'
       + '<span class="tb-arrow">→</span>'
@@ -503,7 +520,9 @@
     s1.className = 'transit-segment transit-segment--walk';
     s1.innerHTML = '<div class="transit-seg__header">🚶 Walk to <strong>' + _esc(opt.oStop.name) + '</strong></div>'
       + '<div class="transit-seg__detail">'
-      + (walkToStop ? formatMeters(walkToStop.distance) + ' · ~' + Math.round(walkToStop.duration/60) + ' min' : '~' + wt + ' min')
+      + (walkToStop
+          ? formatMeters(walkToStop.distance) + ' · ~' + Math.round(walkToStop.duration / 60) + ' min'
+          : walkToDist.toFixed(2) + ' mi · ~' + wt + ' min')
       + '</div>';
     routeSteps.appendChild(s1);
 
@@ -512,23 +531,31 @@
     s2.className = 'transit-segment transit-segment--bus';
     let s2Html = '<div class="transit-seg__header">'
       + '<span class="transit-route-badge" style="background:' + bg + '">' + _esc(opt.route.name) + '</span> '
-      + icon + ' <strong>' + _esc(opt.route.longName || opt.route.name) + '</strong></div>';
+      + icon + ' <strong>' + _esc(opt.route.longName || opt.route.name) + '</strong>'
+      + '</div>';
     if (opt.allPreds && opt.allPreds.length) {
-      s2Html += '<div class="transit-seg__preds"><strong>Next departures:</strong> '
-        + opt.allPreds.slice(0, 5).map(function (p) { return p.minutesAway <= 1 ? '<span class="pred-now">Now</span>' : p.minutesAway + ' min'; }).join(' · ')
+      s2Html += '<div class="transit-seg__preds"><strong>Next:</strong> '
+        + opt.allPreds.slice(0, 4).map(function (p) {
+            return p.minutesAway <= 1 ? '<span class="pred-now">Now</span>' : p.minutesAway + ' min';
+          }).join(' · ')
         + '</div>';
     }
-    s2Html += '<div class="transit-seg__detail">' + _esc(opt.oStop.name) + ' → ' + _esc(opt.dStop.name) + '</div>';
+    s2Html += '<div class="transit-seg__detail">'
+      + _esc(opt.oStop.name) + ' → ' + _esc(opt.dStop.name)
+      + ' · ' + transitDistMi.toFixed(1) + ' mi · ~' + tr + ' min'
+      + '</div>';
     s2.innerHTML = s2Html;
     routeSteps.appendChild(s2);
 
     // Walk from stop
     const s3 = document.createElement('div');
     s3.className = 'transit-segment transit-segment--walk';
-    s3.innerHTML = '<div class="transit-seg__header">🚶 Walk from <strong>' + _esc(opt.dStop.name) + '</strong></div>'
+    s3.innerHTML = '<div class="transit-seg__header">🚶 Walk to destination</div>'
       + '<div class="transit-seg__detail">'
-      + (walkFromStop ? formatMeters(walkFromStop.distance) + ' · ~' + Math.round(walkFromStop.duration/60) + ' min' : '~' + wf + ' min')
-      + ' to destination</div>';
+      + (walkFromStop
+          ? formatMeters(walkFromStop.distance) + ' · ~' + Math.round(walkFromStop.duration / 60) + ' min'
+          : walkFromDist.toFixed(2) + ' mi · ~' + wf + ' min')
+      + '</div>';
     routeSteps.appendChild(s3);
 
     navStartBtn.removeAttribute('hidden');

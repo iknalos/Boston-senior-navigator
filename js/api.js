@@ -839,6 +839,49 @@
   }
 
   /**
+   * Fetch MBTA stops of a specific route type near a lat/lng point.
+   * routeType: '0,1' = subway/light-rail, '3' = bus, '2' = commuter rail, etc.
+   *
+   * @param {number} lat
+   * @param {number} lng
+   * @param {string} routeType  GTFS route type(s), comma-separated
+   * @param {number} [radiusDeg=0.015]
+   * @returns {Promise<Array<{id, name, lat, lng, distance}>>}
+   */
+  async function fetchNearbyStopsByType(lat, lng, routeType, radiusDeg) {
+    radiusDeg = radiusDeg || 0.015;
+    try {
+      const params = new URLSearchParams({
+        'filter[latitude]':   lat,
+        'filter[longitude]':  lng,
+        'filter[radius]':     radiusDeg.toString(),
+        'filter[route_type]': routeType,
+      });
+      const res = await fetch(`${MBTA_BASE}/stops?${params}`, {
+        headers: { Accept: 'application/vnd.api+json' },
+      });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return (json.data || [])
+        .map(function (s) {
+          return {
+            id:       s.id,
+            name:     (s.attributes && s.attributes.name) || s.id,
+            lat:      s.attributes && s.attributes.latitude,
+            lng:      s.attributes && s.attributes.longitude,
+            distance: haversineMiles(lat, lng,
+              s.attributes && s.attributes.latitude,
+              s.attributes && s.attributes.longitude),
+          };
+        })
+        .sort(function (a, b) { return a.distance - b.distance; });
+    } catch (e) {
+      console.error('[BostonAPI] fetchNearbyStopsByType failed:', e);
+      return [];
+    }
+  }
+
+  /**
    * Find stops served by a specific route that are near a lat/lng point.
    * Used to check whether a route actually reaches the destination area.
    *
@@ -1010,6 +1053,7 @@
     planTransitRoute,
     fetchMBTAVehicles,
     fetchRouteStopsNearPoint,
+    fetchNearbyStopsByType,
 
     // Expose constants for callers that want to do their own queries
     CKAN_BASE,

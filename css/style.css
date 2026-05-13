@@ -1096,6 +1096,23 @@ a:hover {
   font-size: 12px;
   color:     var(--color-mid-gray);
 }
+.toc-mode-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.toc-mode-label {
+  font-size:   15px;
+  font-weight: 700;
+  color:       var(--color-navy);
+  flex-shrink: 0;
+}
+.toc-route-detail {
+  font-size:   13px;
+  color:       var(--color-dark-text);
+  margin:      6px 0 4px;
+  line-height: 1.6;
+}
 .transit-no-routes {
   padding:   16px 12px;
   color:     var(--color-mid-gray);
