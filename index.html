@@ -15,7 +15,7 @@
   />
 
   <!-- App styles -->
-  <link rel="stylesheet" href="css/style.css?v=30" />
+  <link rel="stylesheet" href="css/style.css?v=31" />
 </head>
 <body>
 
@@ -57,20 +57,16 @@
             placeholder="e.g. 1 City Hall Square, Boston, MA"
             autocomplete="off"
             aria-required="true"
-            aria-describedby="search-hint"
             aria-autocomplete="list"
             aria-controls="address-suggestions"
           />
           <ul id="address-suggestions" class="suggestions-list" hidden></ul>
         </div>
-        <button id="search-btn" class="search-btn" type="button" aria-label="Find Resources near entered address">
-          Find Resources
-        </button>
-      </div>
-      <div class="search-hint-row">
-        <p id="search-hint" class="search-hint">Start typing a Boston address — suggestions will appear</p>
         <button id="locate-btn" class="locate-btn" type="button" aria-label="Use my current location">
           &#128205; Use My Location
+        </button>
+        <button id="search-btn" class="search-btn" type="button" aria-label="Find Resources near entered address">
+          Find Resources
         </button>
       </div>
       <p id="search-error" class="search-error" role="alert" aria-live="assertive" hidden></p>
@@ -227,15 +223,15 @@
       &mdash; City of Boston Open Data
     </p>
   </footer>
-  <div class="site-version" aria-label="Version 30">v30</div>
+  <div class="site-version" aria-label="Version 31">v31</div>
 
   <!-- Leaflet JS (no integrity check to avoid SRI blocking) -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- App scripts (order matters) -->
-  <script src="js/api.js?v=30"></script>
-  <script src="js/map.js?v=30"></script>
-  <script src="js/app.js?v=30"></script>
+  <script src="js/api.js?v=31"></script>
+  <script src="js/map.js?v=31"></script>
+  <script src="js/app.js?v=31"></script>
 
 </body>
 </html>
