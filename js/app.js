@@ -372,54 +372,71 @@
     });
   }
 
-  // Fetch up to 5 route options (common routes across nearby stop pairs)
+  // Fetch up to 5 route options.
+  // Algorithm: collect all routes at origin stops, then check each route for
+  // stops near the destination (1-mi radius). No common-route intersection needed.
   async function _fetchTransitOptions() {
     const fl = currentLocation.lat, fg = currentLocation.lng;
     const tl = currentDest.lat,     tg = currentDest.lng;
 
-    const [originStops, destStops] = await Promise.all([
-      BostonAPI.fetchMBTANearbyStops(fl, fg),
-      BostonAPI.fetchMBTANearbyStops(tl, tg),
-    ]);
+    // Step 1: origin stops within 0.5 mi
+    const originStops = await BostonAPI.fetchMBTANearbyStops(fl, fg);
     if (!originStops.length) return [];
+    const oStops = originStops.slice(0, 5);
 
-    const oStops = originStops.slice(0, 3);
-    const dStops = destStops.slice(0, 3);
-
-    const [oRouteArrays, dRouteArrays, predArrays] = await Promise.all([
+    // Step 2: routes + predictions for all origin stops in parallel
+    const [oRouteArrays, predArrays] = await Promise.all([
       Promise.all(oStops.map(function (s) { return BostonAPI.fetchMBTARoutesForStop(s.id); })),
-      Promise.all(dStops.map(function (s) { return BostonAPI.fetchMBTARoutesForStop(s.id); })),
       Promise.all(oStops.map(function (s) { return BostonAPI.fetchMBTAPredictions(s.id); })),
     ]);
 
+    // Step 3: deduplicate routes; keep first (closest) origin stop for each
+    const seenRouteIds = new Set();
+    const candidates = [];
+    oStops.forEach(function (oStop, oi) {
+      oRouteArrays[oi].forEach(function (route) {
+        if (seenRouteIds.has(route.id)) return;
+        seenRouteIds.add(route.id);
+        candidates.push({
+          route,
+          oStop,
+          preds: (predArrays[oi] || []).filter(function (p) { return p.routeId === route.id; }),
+        });
+      });
+    });
+    if (!candidates.length) return [];
+
+    // Step 4: for each route, find its stops near the destination (1-mi radius)
+    const destStopArrays = await Promise.all(
+      candidates.slice(0, 15).map(function (c) {
+        return BostonAPI.fetchRouteStopsNearPoint(c.route.id, tl, tg);
+      })
+    );
+
+    // Step 5: build options only from routes that actually reach the destination area
     const seen = new Set();
     const options = [];
+    candidates.slice(0, 15).forEach(function (c, i) {
+      const dStops = destStopArrays[i];
+      if (!dStops || !dStops.length) return;
+      const dStop = dStops[0];
+      const key = c.route.id + '|' + c.oStop.id + '|' + dStop.id;
+      if (seen.has(key)) return;
+      seen.add(key);
 
-    oStops.forEach(function (oStop, oi) {
-      dStops.forEach(function (dStop, di) {
-        const dRouteIds = new Set(dRouteArrays[di].map(function (r) { return r.id; }));
-        oRouteArrays[oi].filter(function (r) { return dRouteIds.has(r.id); }).forEach(function (route) {
-          const key = route.id + '|' + oStop.id + '|' + dStop.id;
-          if (seen.has(key)) return;
-          seen.add(key);
+      const transitDist   = dist(c.oStop.lat, c.oStop.lng, dStop.lat, dStop.lng);
+      const speedMph      = TRANSIT_SPEED_MPH[c.route.type] || 10;
+      const transitMins   = Math.max(1, Math.round(transitDist / speedMph * 60));
+      const walkToMins    = Math.max(1, Math.round(c.oStop.distance / 3 * 60));
+      const walkFromMins  = Math.max(0, Math.round(dist(dStop.lat, dStop.lng, tl, tg) / 3 * 60));
+      const nextDepartureMins = c.preds.length > 0 ? Math.max(0, c.preds[0].minutesAway) : null;
+      const waitMins          = nextDepartureMins !== null ? nextDepartureMins : 5;
 
-          const transitDist   = dist(oStop.lat, oStop.lng, dStop.lat, dStop.lng);
-          const speedMph      = TRANSIT_SPEED_MPH[route.type] || 10;
-          const transitMins   = Math.max(1, Math.round(transitDist / speedMph * 60));
-          const walkToMins    = Math.max(1, Math.round(oStop.distance / 3 * 60));
-          const walkFromMins  = Math.max(0, Math.round(dist(dStop.lat, dStop.lng, tl, tg) / 3 * 60));
-
-          const preds             = (predArrays[oi] || []).filter(function (p) { return p.routeId === route.id; });
-          const nextDepartureMins = preds.length > 0 ? Math.max(0, preds[0].minutesAway) : null;
-          const waitMins          = nextDepartureMins !== null ? nextDepartureMins : 5;
-
-          options.push({
-            route, oStop, dStop,
-            walkToMins, transitMins, walkFromMins,
-            nextDepartureMins, allPreds: preds,
-            estimatedTotalMins: walkToMins + waitMins + transitMins + walkFromMins,
-          });
-        });
+      options.push({
+        route: c.route, oStop: c.oStop, dStop,
+        walkToMins, transitMins, walkFromMins,
+        nextDepartureMins, allPreds: c.preds,
+        estimatedTotalMins: walkToMins + waitMins + transitMins + walkFromMins,
       });
     });
 

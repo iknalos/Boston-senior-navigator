@@ -797,19 +797,21 @@
   const MBTA_BASE = 'https://api-v3.mbta.com';
 
   /**
-   * Fetch MBTA stops within ~0.5 miles of a lat/lng point.
-   * The MBTA V3 API filter[radius] is in degrees; 0.0072° ≈ 0.5 mi.
+   * Fetch MBTA stops within a given radius of a lat/lng point.
+   * radiusDeg defaults to 0.0072° ≈ 0.5 mi.
    *
    * @param {number} lat
    * @param {number} lng
+   * @param {number} [radiusDeg=0.0072]
    * @returns {Promise<Array<{id, name, lat, lng, distance}>>}
    */
-  async function fetchMBTANearbyStops(lat, lng) {
+  async function fetchMBTANearbyStops(lat, lng, radiusDeg) {
+    radiusDeg = radiusDeg || 0.0072;
     try {
       const params = new URLSearchParams({
         'filter[latitude]':  lat,
         'filter[longitude]': lng,
-        'filter[radius]':    '0.0072',
+        'filter[radius]':    radiusDeg.toString(),
       });
       const res = await fetch(`${MBTA_BASE}/stops?${params}`, {
         headers: { Accept: 'application/vnd.api+json' },
@@ -817,19 +819,64 @@
       if (!res.ok) throw new Error(`MBTA stops HTTP ${res.status}`);
       const json = await res.json();
       return (json.data || [])
-        .map(s => ({
-          id:       s.id,
-          name:     (s.attributes && s.attributes.name) || s.id,
-          lat:      s.attributes && s.attributes.latitude,
-          lng:      s.attributes && s.attributes.longitude,
-          distance: haversineMiles(lat, lng,
-            s.attributes && s.attributes.latitude,
-            s.attributes && s.attributes.longitude),
-        }))
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, 5);
+        .map(function (s) {
+          return {
+            id:       s.id,
+            name:     (s.attributes && s.attributes.name) || s.id,
+            lat:      s.attributes && s.attributes.latitude,
+            lng:      s.attributes && s.attributes.longitude,
+            distance: haversineMiles(lat, lng,
+              s.attributes && s.attributes.latitude,
+              s.attributes && s.attributes.longitude),
+          };
+        })
+        .sort(function (a, b) { return a.distance - b.distance; })
+        .slice(0, 8);
     } catch (err) {
       console.error('[BostonAPI] fetchMBTANearbyStops failed:', err);
+      return [];
+    }
+  }
+
+  /**
+   * Find stops served by a specific route that are near a lat/lng point.
+   * Used to check whether a route actually reaches the destination area.
+   *
+   * @param {string} routeId
+   * @param {number} lat
+   * @param {number} lng
+   * @param {number} [radiusDeg=0.015]   0.015° ≈ 1 mile
+   * @returns {Promise<Array<{id, name, lat, lng, distance}>>}
+   */
+  async function fetchRouteStopsNearPoint(routeId, lat, lng, radiusDeg) {
+    radiusDeg = radiusDeg || 0.015;
+    try {
+      const params = new URLSearchParams({
+        'filter[route]':     routeId,
+        'filter[latitude]':  lat,
+        'filter[longitude]': lng,
+        'filter[radius]':    radiusDeg.toString(),
+      });
+      const res = await fetch(`${MBTA_BASE}/stops?${params}`, {
+        headers: { Accept: 'application/vnd.api+json' },
+      });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return (json.data || [])
+        .map(function (s) {
+          return {
+            id:       s.id,
+            name:     (s.attributes && s.attributes.name) || s.id,
+            lat:      s.attributes && s.attributes.latitude,
+            lng:      s.attributes && s.attributes.longitude,
+            distance: haversineMiles(lat, lng,
+              s.attributes && s.attributes.latitude,
+              s.attributes && s.attributes.longitude),
+          };
+        })
+        .sort(function (a, b) { return a.distance - b.distance; });
+    } catch (err) {
+      console.error('[BostonAPI] fetchRouteStopsNearPoint failed:', err);
       return [];
     }
   }
@@ -962,6 +1009,7 @@
     fetchMBTARouteShape,
     planTransitRoute,
     fetchMBTAVehicles,
+    fetchRouteStopsNearPoint,
 
     // Expose constants for callers that want to do their own queries
     CKAN_BASE,
