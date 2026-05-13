@@ -232,19 +232,12 @@
    */
   async function fetch311Hazards(lat, lng, radiusMiles) {
     radiusMiles = radiusMiles || 0.5;
-    console.log(`[BostonAPI] fetch311Hazards: ${radiusMiles} mi of (${lat}, ${lng})`);
     try {
-      // Bounding box slightly larger than search radius so we don't miss edge cases
-      const pad    = 0.014; // ~0.96 mi in each direction
-      const minLat = (lat - pad).toFixed(6);
-      const maxLat = (lat + pad).toFixed(6);
-      const minLng = (lng - pad).toFixed(6);
-      const maxLng = (lng + pad).toFixed(6);
-
-      // Build keyword WHERE clause (keywords are hardcoded, no injection risk)
-      const kwClause = HAZARD_KEYWORDS
-        .map(k => `LOWER(case_title) LIKE '%${k}%' OR LOWER(type) LIKE '%${k}%'`)
-        .join(' OR ');
+      const pad    = 0.014;
+      const minLat = (lat - pad).toFixed(5);
+      const maxLat = (lat + pad).toFixed(5);
+      const minLng = (lng - pad).toFixed(5);
+      const maxLng = (lng + pad).toFixed(5);
 
       const resources = [
         RESOURCE_IDS.requests311_2026,
@@ -252,30 +245,31 @@
         RESOURCE_IDS.requests311_2024,
       ];
 
-      // Query each year via CKAN SQL endpoint — filters by bbox + keywords server-side
-      // so we only transfer the ~100-300 nearby records instead of 5,000 random ones.
-      const yearFetches = resources.map(rid => {
-        const sql =
-          `SELECT case_enquiry_id, case_title, type, location, latitude, longitude, open_dt, case_status, neighborhood ` +
-          `FROM "${rid}" ` +
-          `WHERE latitude IS NOT NULL AND latitude <> '' ` +
-          `AND NULLIF(latitude,'')::float BETWEEN ${minLat} AND ${maxLat} ` +
-          `AND NULLIF(longitude,'')::float BETWEEN ${minLng} AND ${maxLng} ` +
-          `AND (${kwClause}) ` +
-          `LIMIT 500`;
-        const url = `https://data.boston.gov/api/3/action/datastore_search_sql?sql=${encodeURIComponent(sql)}`;
-        return fetch(url, { headers: { 'Content-Type': 'application/json' } })
-          .then(r => r.ok ? r.json() : null)
-          .then(json => (json && json.success && json.result) ? json.result.records || [] : [])
-          .catch(err => {
-            console.warn(`[BostonAPI] fetch311Hazards SQL failed for ${rid}:`, err.message);
-            return [];
-          });
-      });
+      // Run two strategies in parallel per year and combine:
+      //  A) SQL bbox query — precise geographic filter (works if CKAN SQL endpoint is enabled)
+      //  B) Keyword full-text search — always works, broader set post-filtered by distance
+      const fetches = resources.flatMap(rid => [
+        _fetch311SQL(rid, minLat, maxLat, minLng, maxLng),
+        _fetch311Keyword(rid, 5000),
+      ]);
 
-      const allRecords = (await Promise.all(yearFetches)).flat();
+      const seen = new Set();
+      const allRecords = (await Promise.all(fetches))
+        .flat()
+        .filter(r => {
+          const id = r.case_enquiry_id;
+          if (!id || seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        });
 
+      const hazardKeywordsLower = HAZARD_KEYWORDS.map(k => k.toLowerCase());
       return allRecords
+        .filter(r => {
+          const title = (r.case_title || '').toLowerCase();
+          const type  = (r.type       || '').toLowerCase();
+          return hazardKeywordsLower.some(kw => title.includes(kw) || type.includes(kw));
+        })
         .filter(r => {
           const rLat = parseFloat(r.latitude);
           const rLng = parseFloat(r.longitude);
@@ -283,7 +277,7 @@
           return haversineMiles(lat, lng, rLat, rLng) <= radiusMiles;
         })
         .map(r => ({
-          id:           r.case_enquiry_id || r._id || '',
+          id:           r.case_enquiry_id || '',
           title:        r.case_title      || '',
           type:         r.type            || '',
           address:      r.location        || '',
@@ -297,6 +291,42 @@
       console.error('[BostonAPI] fetch311Hazards failed:', err);
       return [];
     }
+  }
+
+  // Strategy A: CKAN SQL with geographic bounding box
+  async function _fetch311SQL(rid, minLat, maxLat, minLng, maxLng) {
+    try {
+      const kwClause = HAZARD_KEYWORDS
+        .map(k => `case_title ILIKE '%${k}%' OR type ILIKE '%${k}%'`)
+        .join(' OR ');
+      const sql =
+        `SELECT case_enquiry_id,case_title,type,location,latitude,longitude,open_dt,case_status,neighborhood ` +
+        `FROM "${rid}" ` +
+        `WHERE latitude IS NOT NULL AND latitude!='' ` +
+        `AND latitude::float>=${minLat} AND latitude::float<=${maxLat} ` +
+        `AND longitude::float>=${minLng} AND longitude::float<=${maxLng} ` +
+        `AND (${kwClause}) LIMIT 500`;
+      const url = `https://data.boston.gov/api/3/action/datastore_search_sql?sql=${encodeURIComponent(sql)}`;
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const json = await res.json();
+      return (json && json.success && json.result) ? (json.result.records || []) : [];
+    } catch (e) { return []; }
+  }
+
+  // Strategy B: keyword full-text search — always available
+  async function _fetch311Keyword(rid, limit) {
+    try {
+      const params = new URLSearchParams({
+        resource_id: rid,
+        q: 'sidewalk pothole crosswalk curb ramp snow',
+        limit,
+      });
+      const res = await fetch(`${CKAN_BASE}?${params}`);
+      if (!res.ok) return [];
+      const json = await res.json();
+      return (json && json.success && json.result) ? (json.result.records || []) : [];
+    } catch (e) { return []; }
   }
 
   /**
