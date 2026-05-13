@@ -248,6 +248,9 @@
 
     _addLegend(_map);
 
+    // Force Leaflet to remeasure container after CSS layout settles
+    setTimeout(function () { _map.invalidateSize(); }, 200);
+
     return _map;
   }
 

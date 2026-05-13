@@ -32,20 +32,20 @@
 
   /* Typography */
   --font-body:   system-ui, "Segoe UI", Georgia, "Times New Roman", serif;
-  --font-size-base:   22px;
-  --font-size-sm:     18px;
-  --font-size-lg:     26px;
-  --font-size-xl:     30px;
-  --font-size-2xl:    36px;
-  --line-height:      1.55;
+  --font-size-base:   17px;
+  --font-size-sm:     15px;
+  --font-size-lg:     20px;
+  --font-size-xl:     24px;
+  --font-size-2xl:    28px;
+  --line-height:      1.5;
 
   /* Spacing */
-  --space-xs:   4px;
-  --space-sm:   8px;
-  --space-md:   16px;
-  --space-lg:   24px;
-  --space-xl:   32px;
-  --space-2xl:  48px;
+  --space-xs:   3px;
+  --space-sm:   6px;
+  --space-md:   12px;
+  --space-lg:   18px;
+  --space-xl:   24px;
+  --space-2xl:  36px;
 
   /* Radii */
   --radius-sm:  4px;
@@ -69,6 +69,11 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* Ensure [hidden] always wins over display:flex/grid rules */
+[hidden] {
+  display: none !important;
 }
 
 html {

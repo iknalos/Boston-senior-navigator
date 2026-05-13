@@ -114,6 +114,7 @@
       setVulnerabilityBadge(vulnScore);
 
       showResults();
+      setTimeout(function () { if (map) map.invalidateSize(); }, 100);
     } catch (err) {
       console.error('Search failed:', err);
       alert('Something went wrong. Please try again.');
