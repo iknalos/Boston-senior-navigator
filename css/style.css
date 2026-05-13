@@ -87,7 +87,8 @@ body {
   line-height:  var(--line-height);
   color:        var(--color-dark-text);
   background:   var(--color-body-bg);
-  min-height:   100vh;
+  height:       100vh;
+  overflow:     hidden;
   display:      flex;
   flex-direction: column;
 }
@@ -672,10 +673,16 @@ a:hover {
 }
 
 .site-version {
-  margin: 4px 0 0 0;
-  font-size: 12px;
-  opacity: 0.45;
-  letter-spacing: 0.04em;
+  position:     fixed;
+  bottom:       8px;
+  right:        12px;
+  font-size:    11px;
+  color:        #fff;
+  opacity:      0.35;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  z-index:      500;
+  user-select:  none;
 }
 
 /* ------------------------------------------------------------
@@ -793,17 +800,11 @@ a:hover {
     --sidebar-width: 280px;
     --font-size-base: 19px;
   }
-
-  .main-layout {
-    height: calc(100vh - 180px); /* approximate header + search height */
-  }
 }
 
 /* ---- Large screens (>= 1024px): full sidebar+map ---- */
 @media (min-width: 1024px) {
   .main-layout {
-    /* Take all remaining vertical space between search and footer */
-    height: calc(100vh - 200px);
     min-height: 400px;
   }
 }
