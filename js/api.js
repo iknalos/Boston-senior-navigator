@@ -451,51 +451,75 @@
   }
 
   /**
-   * Search Boston SAM addresses as the user types.
+   * Search addresses across Massachusetts using the Photon geocoding API
+   * (OpenStreetMap-based, no API key required).
    * Returns up to 8 matches with display label and lat/lng.
-   * Only returns real Boston addresses — no other cities.
    *
    * @param {string} query — partial address string
-   * @returns {Promise<Array<{label, lat, lng, neighborhood}>>}
+   * @returns {Promise<Array<{label, street, city, state, zip, lat, lng}>>}
    */
-  async function searchBostonAddresses(query) {
-    if (!query || query.length < 3) return [];
+  async function searchAddresses(query) {
+    if (!query || query.length < 2) return [];
     try {
+      // Massachusetts bounding box: W=-73.5, S=41.2, E=-69.9, N=42.9
       const params = new URLSearchParams({
-        resource_id: RESOURCE_IDS.samAddresses,
         q:     query,
         limit: 8,
-        fields: 'FULL_ADDRESS,MAILING_NEIGHBORHOOD,ZIP_CODE,POINT_X,POINT_Y',
+        bbox:  '-73.5,41.2,-69.9,42.9',
+        lang:  'en',
       });
-      const url = `${CKAN_BASE}?${params}`;
-      const response = await fetch(url);
-      if (!response.ok) return [];
-      const json = await response.json();
-      if (!json.success) return [];
-      return json.result.records
-        .filter(r => r.POINT_X && r.POINT_Y)
-        .map(r => {
-          const hood = (r.MAILING_NEIGHBORHOOD || '').trim();
-          // Clean range addresses: "100-102 Tremont St" → "100 Tremont St"
-          let street = (r.FULL_ADDRESS || '').trim().replace(/^(\d+)-\d+(\s)/, '$1$2');
-          // Strip trailing unit numbers: "100 Tremont St 3" → "100 Tremont St"
-          street = street.replace(/\s+\d+$/, '');
-          // Avoid "Boston, Boston" when neighborhood IS Boston
-          const cityPart = hood.toLowerCase() === 'boston'
-            ? 'Boston, MA ' + (r.ZIP_CODE || '')
-            : hood + ', Boston, MA ' + (r.ZIP_CODE || '');
+      const res = await fetch(`https://photon.komoot.io/api/?${params}`, {
+        headers: { 'Accept-Language': 'en' },
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      if (!data.features) return [];
+
+      const MA_ABBR = { 'Massachusetts': 'MA', 'MA': 'MA' };
+
+      return data.features
+        .filter(f => f.geometry && f.geometry.coordinates)
+        .map(f => {
+          const p = f.properties || {};
+          const stateRaw = p.state || '';
+          const stateAbbr = MA_ABBR[stateRaw] || stateRaw;
+
+          // Build street portion: prefer housenumber+street, else name, else street alone
+          let street = '';
+          if (p.housenumber && p.street) {
+            street = p.housenumber + ' ' + p.street;
+          } else if (p.street) {
+            street = p.street;
+          } else if (p.name) {
+            street = p.name;
+          }
+
+          const city = p.city || p.town || p.village || p.county || '';
+          const zip  = p.postcode || '';
+
+          // Full label used in the input field when selected
+          const cityState = [city, stateAbbr].filter(Boolean).join(', ');
+          const label = [street, cityState, zip].filter(Boolean).join(', ');
+
           return {
-            label:        street + ', ' + cityPart,
-            lat:          parseFloat(r.POINT_Y),
-            lng:          parseFloat(r.POINT_X),
-            neighborhood: hood,
+            label,
+            street,
+            city,
+            state: stateAbbr,
+            zip,
+            lat: f.geometry.coordinates[1],
+            lng: f.geometry.coordinates[0],
           };
-        });
+        })
+        .filter(r => r.label && r.lat && r.lng);
     } catch (err) {
-      console.error('[BostonAPI] searchBostonAddresses failed:', err);
+      console.error('[BostonAPI] searchAddresses failed:', err);
       return [];
     }
   }
+
+  // Keep old name as alias for backwards compatibility
+  const searchBostonAddresses = searchAddresses;
 
   // ─── OSRM Routing ────────────────────────────────────────────────────────────
   // Walking uses routing.openstreetmap.de/routed-foot — a dedicated pedestrian
@@ -1071,6 +1095,7 @@
     fetch311Hazards,
     fetchSocialVulnerability,
     geocodeAddress,
+    searchAddresses,
     searchBostonAddresses,
     fetchOSRMRoute,
     fetchMBTANearbyStops,
