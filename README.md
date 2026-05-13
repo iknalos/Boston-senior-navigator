@@ -2,7 +2,7 @@
 
 A static civic web app that helps elderly residents and caregivers find hospitals, accessible parks, and safety resources near any Boston address — with real-time MBTA transit routing, live bus/train positions, and turn-by-turn navigation.
 
-**Live site:** https://iknalos.github.io/age-friendly-boston
+**Live site:** https://iknalos.github.io/Boston-senior-navigator
 
 ---
 
@@ -117,6 +117,8 @@ To deploy manually:
 ```bash
 git push origin main
 ```
+
+The site will be available at `https://iknalos.github.io/Boston-senior-navigator` after GitHub Pages rebuilds (usually within 60 seconds).
 
 ---
 
