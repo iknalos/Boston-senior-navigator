@@ -1037,6 +1037,72 @@ a:hover {
   color:         var(--color-dark-text);
 }
 
+/* Transit option selection cards (Phase 1) */
+.transit-option-card {
+  background:    #fff;
+  border:        2px solid var(--color-light-gray);
+  border-radius: var(--radius-md);
+  padding:       12px 14px;
+  margin-bottom: 8px;
+  cursor:        pointer;
+  transition:    border-color 0.15s, background 0.15s;
+}
+.transit-option-card:hover,
+.transit-option-card:focus {
+  border-color: var(--color-amber);
+  background:   #fffbf0;
+  outline:      none;
+}
+.toc-header {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  margin-bottom: 5px;
+}
+.toc-badge {
+  color:         #fff;
+  border-radius: 4px;
+  padding:       2px 8px;
+  font-size:     13px;
+  font-weight:   700;
+  min-width:     28px;
+  text-align:    center;
+  flex-shrink:   0;
+}
+.toc-name {
+  font-size:   14px;
+  font-weight: 600;
+  color:       var(--color-dark-text);
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+}
+.toc-row {
+  display:     flex;
+  align-items: baseline;
+  gap:         10px;
+  margin-bottom: 3px;
+}
+.toc-total {
+  font-size:   16px;
+  font-weight: 700;
+  color:       var(--color-navy);
+}
+.toc-dep {
+  font-size: 13px;
+  color:     var(--color-mid-gray);
+}
+.toc-stops {
+  font-size: 12px;
+  color:     var(--color-mid-gray);
+}
+.transit-no-routes {
+  padding:   16px 12px;
+  color:     var(--color-mid-gray);
+  font-size: 14px;
+  text-align: center;
+}
+
 .transit-total {
   font-size:   17px;
   font-weight: 700;
