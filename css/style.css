@@ -671,6 +671,13 @@ a:hover {
   color: var(--color-white);
 }
 
+.site-version {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  opacity: 0.45;
+  letter-spacing: 0.04em;
+}
+
 /* ------------------------------------------------------------
    10. Leaflet Overrides (make popups readable)
    ------------------------------------------------------------ */
