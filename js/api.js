@@ -550,6 +550,15 @@
   // ─── MBTA Transit Routing ─────────────────────────────────────────────────────
 
   /**
+   * Average transit speed in mph by MBTA route type.
+   * 0=Light Rail, 1=Heavy Rail/Subway, 2=Commuter Rail, 3=Bus, 4=Ferry
+   */
+  function getTransitSpeed(routeType) {
+    const speeds = { 0: 15, 1: 22, 2: 35, 3: 10, 4: 18 };
+    return speeds[routeType] !== undefined ? speeds[routeType] : 10;
+  }
+
+  /**
    * Fetch MBTA routes that serve a specific stop.
    *
    * @param {string} stopId
@@ -577,17 +586,24 @@
   }
 
   /**
-   * Plan a simplified transit itinerary:
-   *   walk → origin MBTA stop → [transit] → destination MBTA stop → walk
+   * Plan an optimal transit itinerary:
+   *   walk → best origin MBTA stop → [transit] → best dest MBTA stop → walk
    *
-   * Finds the nearest stop at each end, identifies common routes between them,
-   * and fetches OSRM walking legs + live MBTA predictions.
+   * Tries up to 3 origin stops × 3 destination stops (9 combinations),
+   * finds common routes for each pair, estimates total trip time using
+   * route-type-specific speeds, and returns the minimum-time option.
+   *
+   * Returned time breakdown: walkToMins, waitMins, transitMins, walkFromMins, totalMins
    *
    * @param {number} fromLat
    * @param {number} fromLng
    * @param {number} toLat
    * @param {number} toLng
-   * @returns {Promise<{originStop, destStop, commonRoutes, originRoutes, predictions, walkToStop, walkFromStop}|null>}
+   * @returns {Promise<{
+   *   originStop, destStop, originRoutes, commonRoutes, predictions,
+   *   walkToStop, walkFromStop,
+   *   walkToMins, waitMins, transitMins, walkFromMins, totalMins, transitDistMiles
+   * }|null>}
    */
   async function planTransitRoute(fromLat, fromLng, toLat, toLng) {
     try {
@@ -597,30 +613,93 @@
       ]);
       if (!originStops.length) return null;
 
-      const originStop = originStops[0];
-      const destStop   = destStops[0] || null;
+      const oStops = originStops.slice(0, 3);
+      const dStops = destStops.slice(0, 3);
 
-      const tasks = [
-        fetchMBTARoutesForStop(originStop.id),
-        fetchMBTAPredictions(originStop.id),
-        fetchOSRMRoute(fromLat, fromLng, originStop.lat, originStop.lng),
-      ];
-      if (destStop) {
-        tasks.push(fetchMBTARoutesForStop(destStop.id));
-        tasks.push(fetchOSRMRoute(destStop.lat, destStop.lng, toLat, toLng));
-      }
+      // Fetch routes for all candidate stops in parallel
+      const [oRouteArrays, dRouteArrays] = await Promise.all([
+        Promise.all(oStops.map(s => fetchMBTARoutesForStop(s.id))),
+        Promise.all(dStops.map(s => fetchMBTARoutesForStop(s.id))),
+      ]);
 
-      const [originRoutes, predictions, walkToStop, ...rest] = await Promise.all(tasks);
-      const destRoutes   = rest[0] || [];
-      const walkFromStop = rest[1] || null;
+      // Build candidates: pairs that share at least one route
+      const candidates = [];
+      oStops.forEach(function (oStop, oi) {
+        dStops.forEach(function (dStop, di) {
+          const oRoutes = oRouteArrays[oi];
+          const dRouteIds = new Set(dRouteArrays[di].map(r => r.id));
+          const common = oRoutes.filter(r => dRouteIds.has(r.id));
 
-      const destRouteIds = new Set(destRoutes.map(r => r.id));
-      const commonRoutes = originRoutes.filter(r => destRouteIds.has(r.id));
-      const relevantPreds = (commonRoutes.length > 0
-        ? predictions.filter(p => commonRoutes.some(r => r.id === p.routeId))
-        : predictions).slice(0, 5);
+          const transitDistMiles = haversineMiles(oStop.lat, oStop.lng, dStop.lat, dStop.lng);
+          const bestType = common.length > 0 ? common[0].type : 3;
+          const transitMinsEst = transitDistMiles / getTransitSpeed(bestType) * 60;
+          const walkToMinsEst  = oStop.distance / 3 * 60;
+          const walkFromMinsEst = haversineMiles(dStop.lat, dStop.lng, toLat, toLng) / 3 * 60;
 
-      return { originStop, destStop, originRoutes, commonRoutes, predictions: relevantPreds, walkToStop, walkFromStop };
+          candidates.push({
+            oStop, dStop,
+            oRoutes, dRoutes: dRouteArrays[di], common,
+            transitDistMiles, transitMinsEst, walkToMinsEst, walkFromMinsEst,
+            estimatedTotal: walkToMinsEst + 5 + transitMinsEst + walkFromMinsEst,
+            hasCommonRoute: common.length > 0,
+          });
+        });
+      });
+
+      if (!candidates.length) return null;
+
+      // Prefer pairs with common routes; within each group sort by estimated time
+      candidates.sort(function (a, b) {
+        if (a.hasCommonRoute !== b.hasCommonRoute) return a.hasCommonRoute ? -1 : 1;
+        return a.estimatedTotal - b.estimatedTotal;
+      });
+
+      // Fetch OSRM + predictions for the top 2 candidates, then pick the true minimum
+      const top = candidates.slice(0, 2);
+      const detailedResults = await Promise.all(top.map(async function (c) {
+        const [walkToStop, walkFromStop, predictions] = await Promise.all([
+          fetchOSRMRoute(fromLat, fromLng, c.oStop.lat, c.oStop.lng),
+          fetchOSRMRoute(c.dStop.lat, c.dStop.lng, toLat, toLng),
+          fetchMBTAPredictions(c.oStop.id),
+        ]);
+
+        const relevantPreds = (c.common.length > 0
+          ? predictions.filter(p => c.common.some(r => r.id === p.routeId))
+          : predictions).slice(0, 5);
+
+        const waitMins    = relevantPreds.length > 0 ? Math.max(0, relevantPreds[0].minutesAway) : 5;
+        const walkToMins  = walkToStop   ? Math.round(walkToStop.duration  / 60) : Math.round(c.walkToMinsEst);
+        const walkFromMins = walkFromStop ? Math.round(walkFromStop.duration / 60) : Math.round(c.walkFromMinsEst);
+        const bestType    = c.common.length > 0 ? c.common[0].type : 3;
+        const transitMins = Math.round(c.transitDistMiles / getTransitSpeed(bestType) * 60);
+        const totalMins   = walkToMins + waitMins + transitMins + walkFromMins;
+
+        return Object.assign({}, c, {
+          walkToStop, walkFromStop,
+          predictions: relevantPreds,
+          walkToMins, waitMins, transitMins, walkFromMins, totalMins,
+        });
+      }));
+
+      // Pick minimum total time
+      detailedResults.sort(function (a, b) { return a.totalMins - b.totalMins; });
+      const best = detailedResults[0];
+
+      return {
+        originStop:       best.oStop,
+        destStop:         best.dStop,
+        originRoutes:     best.oRoutes,
+        commonRoutes:     best.common,
+        predictions:      best.predictions,
+        walkToStop:       best.walkToStop,
+        walkFromStop:     best.walkFromStop,
+        walkToMins:       best.walkToMins,
+        waitMins:         best.waitMins,
+        transitMins:      best.transitMins,
+        walkFromMins:     best.walkFromMins,
+        totalMins:        best.totalMins,
+        transitDistMiles: best.transitDistMiles,
+      };
     } catch (err) {
       console.error('[BostonAPI] planTransitRoute failed:', err);
       return null;

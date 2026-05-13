@@ -305,13 +305,11 @@
     }
 
     routeSteps.innerHTML = '';
-    let totalWalkSecs = 0;
 
     // Walk to origin stop
     const walkSeg = document.createElement('div');
     walkSeg.className = 'transit-segment transit-segment--walk';
     if (data.walkToStop) {
-      totalWalkSecs += data.walkToStop.duration;
       walkSeg.innerHTML =
         '<div class="transit-seg__header">🚶 Walk to <strong>' + _esc(data.originStop.name) + '</strong></div>' +
         '<div class="transit-seg__detail">' + formatMeters(data.walkToStop.distance) +
@@ -351,7 +349,6 @@
 
     // Walk from destination stop
     if (data.destStop && data.walkFromStop) {
-      totalWalkSecs += data.walkFromStop.duration;
       const walkSeg2 = document.createElement('div');
       walkSeg2.className = 'transit-segment transit-segment--walk';
       walkSeg2.innerHTML =
@@ -364,11 +361,23 @@
 
     if (map) BostonMap.fitRoutes();
 
+    // Build time breakdown bar
+    const wt  = data.walkToMins   || 0;
+    const wt2 = data.walkFromMins || 0;
+    const tr  = data.transitMins  || 0;
+    const wa  = data.waitMins     || 0;
+    const tot = data.totalMins    || (wt + wa + tr + wt2);
+    const routeIcon = (data.commonRoutes && data.commonRoutes.length)
+      ? (ROUTE_TYPE_ICON[data.commonRoutes[0].type] || '🚌') : '🚌';
+
     routeSummary.innerHTML =
-      '<strong>~' + formatSeconds(totalWalkSecs) + ' walking</strong>'
-      + (data.commonRoutes && data.commonRoutes.length
-          ? ' + transit time varies'
-          : ' — check MBTA for full trip');
+      '<div class="transit-total">~' + tot + ' min total</div>'
+      + '<div class="transit-breakdown">'
+      + (wt  ? '<span class="tb-seg tb-walk">🚶 ' + wt + ' min</span><span class="tb-arrow">→</span>' : '')
+      + (wa  ? '<span class="tb-seg tb-wait">⏱ ' + wa + ' min wait</span><span class="tb-arrow">→</span>' : '')
+      + (tr  ? '<span class="tb-seg tb-transit">' + routeIcon + ' ' + tr + ' min</span>' : '')
+      + (wt2 ? '<span class="tb-arrow">→</span><span class="tb-seg tb-walk">🚶 ' + wt2 + ' min</span>' : '')
+      + '</div>';
 
     onRouteReady();
   }
