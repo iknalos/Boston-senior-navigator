@@ -295,9 +295,10 @@ a:hover {
   background:     var(--color-white);
   border-right:   3px solid var(--color-light-gray);
   overflow-y:     auto;
-  padding:        var(--space-lg);
+  padding:        var(--space-md);
   display:        flex;
   flex-direction: column;
+  font-size:      16px;
 }
 
 /* Placeholder state (no search yet) */
@@ -308,18 +309,18 @@ a:hover {
   justify-content: center;
   text-align:      center;
   flex:            1;
-  padding:         var(--space-xl);
+  padding:         var(--space-lg);
   color:           var(--color-mid-gray);
-  gap:             var(--space-md);
+  gap:             var(--space-sm);
 }
 
 .placeholder-icon {
-  font-size: 3rem;
+  font-size: 2rem;
   line-height: 1;
 }
 
 .results-placeholder p {
-  font-size:  var(--font-size-base);
+  font-size:  15px;
   max-width:  240px;
   line-height: var(--line-height);
 }
@@ -328,20 +329,20 @@ a:hover {
 .results-panel {
   display:        flex;
   flex-direction: column;
-  gap:            var(--space-md);
+  gap:            var(--space-sm);
 }
 
 .results-heading {
-  font-size:     var(--font-size-lg);
+  font-size:     18px;
   font-weight:   700;
   color:         var(--color-navy);
   border-bottom: 2px solid var(--color-light-gray);
-  padding-bottom: var(--space-sm);
-  margin-bottom: var(--space-xs);
+  padding-bottom: var(--space-xs);
+  margin-bottom:  var(--space-xs);
 }
 
 .results-address {
-  font-size:   var(--font-size-sm);
+  font-size:   13px;
   color:       var(--color-mid-gray);
   font-style:  italic;
   margin-top:  calc(-1 * var(--space-xs));
@@ -350,12 +351,12 @@ a:hover {
 /* --- Result Cards ------------------------------------------- */
 .result-card {
   display:       flex;
-  align-items:   flex-start;
-  gap:           var(--space-md);
+  align-items:   center;
+  gap:           var(--space-sm);
   background:    var(--color-off-white);
   border:        2px solid var(--color-light-gray);
-  border-radius: var(--radius-lg);
-  padding:       var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  padding:       var(--space-sm) var(--space-md);
   box-shadow:    var(--shadow-card);
 }
 
@@ -372,26 +373,25 @@ a:hover {
 }
 
 .result-card__icon {
-  font-size:   2rem;
+  font-size:   1.5rem;
   line-height: 1;
   flex-shrink: 0;
-  margin-top:  2px;
 }
 
 .result-card__heading {
-  font-size:   var(--font-size-base);
+  font-size:   15px;
   font-weight: 700;
   color:       var(--color-dark-text);
-  margin-bottom: var(--space-xs);
+  margin-bottom: 2px;
 }
 
 .result-card__count {
-  font-size: var(--font-size-base);
+  font-size: 14px;
   color:     var(--color-dark-text);
 }
 
 .count-number {
-  font-size:   var(--font-size-xl);
+  font-size:   22px;
   font-weight: 700;
   color:       var(--color-navy);
   line-height: 1;
@@ -402,7 +402,7 @@ a:hover {
 .result-card--hazards  .count-number { color: var(--color-hazards);  }
 
 .count-label {
-  font-size: var(--font-size-sm);
+  font-size: 13px;
   color:     var(--color-mid-gray);
 }
 
@@ -410,29 +410,29 @@ a:hover {
 .vulnerability-section {
   background:    var(--color-off-white);
   border:        2px solid var(--color-light-gray);
-  border-radius: var(--radius-lg);
-  padding:       var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  padding:       var(--space-sm) var(--space-md);
   box-shadow:    var(--shadow-card);
 }
 
 .vulnerability-heading {
-  font-size:     var(--font-size-base);
+  font-size:     15px;
   font-weight:   700;
   color:         var(--color-dark-text);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-sm);
 }
 
 .vuln-badge {
   display:        inline-flex;
   align-items:    center;
   justify-content: center;
-  padding:        var(--space-sm) var(--space-xl);
+  padding:        var(--space-xs) var(--space-lg);
   border-radius:  var(--radius-md);
-  font-size:      var(--font-size-lg);
+  font-size:      15px;
   font-weight:    700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  min-width:      140px;
+  min-width:      120px;
   text-align:     center;
 }
 
@@ -461,8 +461,8 @@ a:hover {
 }
 
 .vuln-description {
-  margin-top:  var(--space-sm);
-  font-size:   var(--font-size-sm);
+  margin-top:  var(--space-xs);
+  font-size:   13px;
   color:       var(--color-mid-gray);
   line-height: var(--line-height);
 }
