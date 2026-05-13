@@ -365,25 +365,26 @@
     hazards.forEach(function (h) {
       if (h.lat == null || h.lng == null) return;
 
-      var name = h.name || h.complaintType || 'Street Hazard';
-      var desc = h.description || 'A hazard has been reported at this location. Please use caution.';
+      var title  = h.title  || h.type  || 'Street Hazard';
+      var type   = h.type   || '';
+      var opened = h.opened || '';
+      var status = h.status || '';
 
-      // Extra metadata row showing complaint type and reported date
-      var extraHtml = '';
-      if (h.complaintType || h.date) {
-        extraHtml += '<p class="bfm-popup-meta">';
-        if (h.complaintType) {
-          extraHtml += '<strong>Type:</strong> ' + _esc(h.complaintType);
-        }
-        if (h.complaintType && h.date) extraHtml += ' &nbsp;|&nbsp; ';
-        if (h.date) {
-          extraHtml += '<strong>Reported:</strong> ' + _esc(h.date);
-        }
-        extraHtml += '</p>';
+      // Format opened date nicely if available
+      var dateStr = '';
+      if (opened) {
+        try { dateStr = new Date(opened).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }); }
+        catch (e) { dateStr = opened.slice(0, 10); }
       }
 
-      var popup = _buildPopup(name, h.address, desc, extraHtml);
-      L.marker([h.lat, h.lng], { icon: icon, alt: name })
+      var extraHtml = '<p class="bfm-popup-meta">';
+      if (type && type !== title) extraHtml += '<strong>Category:</strong> ' + _esc(type) + '<br>';
+      if (dateStr)  extraHtml += '<strong>Reported:</strong> ' + _esc(dateStr) + '<br>';
+      if (status)   extraHtml += '<strong>Status:</strong> '   + _esc(status);
+      extraHtml += '</p>';
+
+      var popup = _buildPopup('⚠️ ' + title, h.address || h.neighborhood || '', '', extraHtml);
+      L.marker([h.lat, h.lng], { icon: icon, alt: title })
         .bindPopup(popup, { maxWidth: 300 })
         .addTo(_layers.hazards);
     });
