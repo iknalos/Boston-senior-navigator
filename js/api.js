@@ -385,13 +385,10 @@
   async function geocodeAddress(address) {
     console.log(`[BostonAPI] geocodeAddress: "${address}"`);
     try {
-      // Try structured query first for building-level precision
-      const parts = parseAddressParts(address);
-      if (parts) {
-        const r = await nominatimStructured(parts);
-        if (r) return r;
-      }
-      // Fallback: free-form query
+      // 1. US Census Bureau geocoder — most accurate for US street addresses
+      const census = await censusFreeform(address);
+      if (census) return census;
+      // 2. Nominatim fallback
       const hasLocation = /,\s*[A-Z]{2}(\s+\d{5})?$/i.test(address) ||
         /boston|cambridge|somerville|brookline|quincy|newton|malden|roxbury/i.test(address);
       const query = hasLocation ? address : `${address}, Boston, MA`;
@@ -402,23 +399,26 @@
     }
   }
 
-  function parseAddressParts(address) {
-    const m = address.match(/^(\d+[A-Za-z]?(?:-\d+)?)\s+(.+?),\s*([A-Za-z\s]+),\s*([A-Z]{2})(?:\s+\d{5})?$/i);
-    if (!m) return null;
-    return { number: m[1], street: m[2].trim(), city: m[3].trim(), state: m[4].trim() };
-  }
-
-  async function nominatimStructured({ number, street, city, state }) {
-    const params = new URLSearchParams({
-      street: `${number} ${street}`, city, state, country: 'US',
-      format: 'json', addressdetails: '1', limit: '1',
-    });
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`,
-      { headers: { 'Accept-Language': 'en' } });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!data.length) return null;
-    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  async function censusFreeform(address) {
+    try {
+      const params = new URLSearchParams({
+        address:   address,
+        benchmark: 'Public_AR_Current',
+        format:    'json',
+      });
+      const url = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?${params}`;
+      const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const matches = data.result && data.result.addressMatches;
+      if (!matches || !matches.length) return null;
+      const m = matches[0];
+      console.log('[BostonAPI] Census geocode match:', m.matchedAddress);
+      return { lat: parseFloat(m.coordinates.y), lng: parseFloat(m.coordinates.x), approximate: true };
+    } catch (err) {
+      console.warn('[BostonAPI] Census geocoder failed, trying Nominatim:', err.message);
+      return null;
+    }
   }
 
   async function nominatimFreeform(query) {
@@ -428,7 +428,7 @@
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.length) return null;
-    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), approximate: true };
   }
 
   /**
