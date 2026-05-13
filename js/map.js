@@ -190,6 +190,14 @@
       '  overflow: hidden;',
       '  line-height: 1;',
       '}',
+      '.bfm-vehicle-badge--active {',
+      '  border: 3px solid rgba(255,255,255,0.95);',
+      '  animation: vehicle-pulse 1.4s ease-in-out infinite;',
+      '}',
+      '@keyframes vehicle-pulse {',
+      '  0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.7), 0 2px 8px rgba(0,0,0,0.5); }',
+      '  50%      { box-shadow: 0 0 0 7px rgba(255,255,255,0),  0 2px 8px rgba(0,0,0,0.5); }',
+      '}',
       /* Highlighted marker — amber glow + scale up */
       '.bfm-highlight-icon span {',
       '  filter: drop-shadow(0 0 5px #f5a623) drop-shadow(0 0 10px #f5a62388);',
@@ -622,15 +630,15 @@
     return routeName.length > 4 ? routeName.slice(0, 4) : routeName;
   }
 
-  function _makeVehicleIcon(routeName, routeType, bgColor, textColor) {
+  function _makeVehicleIcon(routeName, routeType, bgColor, textColor, active) {
     var label = _vehicleLabel(routeName, routeType);
     var bg    = bgColor    && bgColor    !== '000000' ? '#' + bgColor    : '#1a3a5c';
     var fg    = textColor  && textColor  !== '000000' ? '#' + textColor  : '#ffffff';
-    // Rail vehicles render slightly larger than bus
-    var sz    = (routeType === 0 || routeType === 1) ? 26 : 22;
-    var fs    = sz <= 22 ? '9px' : '10px';
+    var sz    = active ? 34 : ((routeType === 0 || routeType === 1) ? 26 : 22);
+    var fs    = active ? '12px' : (sz <= 22 ? '9px' : '10px');
+    var cls   = 'bfm-vehicle-badge' + (active ? ' bfm-vehicle-badge--active' : '');
     return L.divIcon({
-      html: '<div class="bfm-vehicle-badge" style="background:' + bg + ';color:' + fg
+      html: '<div class="' + cls + '" style="background:' + bg + ';color:' + fg
           + ';width:' + sz + 'px;height:' + sz + 'px;font-size:' + fs + ';">'
           + label + '</div>',
       className: 'bfm-vehicle-icon',
@@ -645,14 +653,14 @@
    * Clears the transit layer and re-draws all vehicle badges.
    * Each vehicle shows a colored route-badge marker; clicking opens a popup.
    */
-  function plotTransitVehicles(vehicles) {
+  function plotTransitVehicles(vehicles, activeMode) {
     if (!_map) return;
     _layers.transit.clearLayers();
     if (!vehicles || !vehicles.length) return;
 
     vehicles.forEach(function (v) {
       if (!v.lat || !v.lng) return;
-      var icon = _makeVehicleIcon(v.routeName, v.routeType, v.routeColor, v.routeTextColor);
+      var icon = _makeVehicleIcon(v.routeName, v.routeType, v.routeColor, v.routeTextColor, activeMode);
       var status = (v.status || '').replace(/_/g, ' ').toLowerCase();
       var popup =
         '<div class="bfm-popup">' +
@@ -661,7 +669,7 @@
         '<p class="bfm-popup-desc">Vehicle #' + _esc(v.label) + '</p>' +
         (status ? '<p class="bfm-popup-meta">' + status + '</p>' : '') +
         '</div>';
-      L.marker([v.lat, v.lng], { icon: icon, zIndexOffset: 500 })
+      L.marker([v.lat, v.lng], { icon: icon, zIndexOffset: activeMode ? 1000 : 500 })
         .bindPopup(popup, { maxWidth: 220 })
         .addTo(_layers.transit);
     });
