@@ -55,7 +55,8 @@
   let navActive      = false;
 
   // Live transit vehicle refresh
-  let _transitRefreshId = null;
+  let _transitRefreshId   = null;
+  let _activeTransitRouteId = null; // set when user picks a specific transit card
 
   // Speed estimates (mph) per mode
   const NAV_SPEED = { walk: 3, car: 25, transit: 3 };
@@ -114,19 +115,32 @@
   // ── Live transit refresh ──────────────────────────────────────
   async function _fetchAndPlotVehicles() {
     if (!currentLocation || !map) return;
-    const vehicles = await BostonAPI.fetchMBTAVehicles();
+    let vehicles;
+    if (_activeTransitRouteId) {
+      // Route is selected: fetch only that route's vehicles (whole system, no radius filter)
+      vehicles = await BostonAPI.fetchMBTAVehicles(_activeTransitRouteId);
+    } else {
+      // General mode: all types within 5 miles
+      vehicles = await BostonAPI.fetchMBTAVehicles();
+      vehicles = vehicles.filter(function (v) {
+        return dist(currentLocation.lat, currentLocation.lng, v.lat, v.lng) <= 5;
+      });
+    }
     if (!map || !currentLocation) return;
-    // Keep only vehicles within 5 miles of user
-    const nearby = vehicles.filter(function (v) {
-      return dist(currentLocation.lat, currentLocation.lng, v.lat, v.lng) <= 5;
-    });
-    BostonMap.plotTransitVehicles(nearby);
+    BostonMap.plotTransitVehicles(vehicles, !!_activeTransitRouteId);
   }
 
-  function _startTransitRefresh() {
+  function _startTransitRefresh(intervalMs) {
     _stopTransitRefresh();
     _fetchAndPlotVehicles();
-    _transitRefreshId = setInterval(_fetchAndPlotVehicles, 20000);
+    _transitRefreshId = setInterval(_fetchAndPlotVehicles, intervalMs || 20000);
+  }
+
+  function _clearActiveRoute() {
+    if (_activeTransitRouteId) {
+      _activeTransitRouteId = null;
+      _startTransitRefresh(20000);
+    }
   }
 
   function _stopTransitRefresh() {
@@ -454,6 +468,10 @@
     routeSummary.innerHTML = '<div class="transit-total">Planning route…</div>';
     routeSteps.innerHTML   = '';
     if (map) BostonMap.clearRoute();
+
+    // Switch to route-specific live tracking at 5s refresh
+    _activeTransitRouteId = opt.route.id;
+    _startTransitRefresh(5000);
 
     // Rail (0,1,2): use actual MBTA shape; Bus (3): use OSRM driving along roads
     const isRail = opt.route.type === 0 || opt.route.type === 1 || opt.route.type === 2;
@@ -845,6 +863,7 @@
     });
 
     directionsBackBtn.addEventListener('click', function () {
+      _clearActiveRoute();
       showPanel(resultsPanel);
       if (map) { BostonMap.clearRoute(); BostonMap.clearHoverLine(); BostonMap.clearHighlight(); }
     });
@@ -855,6 +874,7 @@
 
     routeBackBtn.addEventListener('click', function () {
       stopNavigation();
+      _clearActiveRoute();
       if (map) BostonMap.clearRoute();
       showPanel(directionsPanel);
     });
