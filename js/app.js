@@ -54,6 +54,9 @@
   let navDestLng     = null;
   let navActive      = false;
 
+  // Live transit vehicle refresh
+  let _transitRefreshId = null;
+
   // Speed estimates (mph) per mode
   const NAV_SPEED = { walk: 3, car: 25, transit: 3 };
 
@@ -106,6 +109,31 @@
     if (!s.length) return null;
     s.sort((a, b) => a - b);
     return s[Math.floor(s.length / 2)];
+  }
+
+  // ── Live transit refresh ──────────────────────────────────────
+  async function _fetchAndPlotVehicles() {
+    if (!currentLocation || !map) return;
+    const vehicles = await BostonAPI.fetchMBTAVehicles();
+    if (!map || !currentLocation) return;
+    // Keep only vehicles within 5 miles of user
+    const nearby = vehicles.filter(function (v) {
+      return dist(currentLocation.lat, currentLocation.lng, v.lat, v.lng) <= 5;
+    });
+    BostonMap.plotTransitVehicles(nearby);
+  }
+
+  function _startTransitRefresh() {
+    _stopTransitRefresh();
+    _fetchAndPlotVehicles();
+    _transitRefreshId = setInterval(_fetchAndPlotVehicles, 20000);
+  }
+
+  function _stopTransitRefresh() {
+    if (_transitRefreshId !== null) {
+      clearInterval(_transitRefreshId);
+      _transitRefreshId = null;
+    }
   }
 
   // ── Panel helper ──────────────────────────────────────────────
@@ -581,6 +609,7 @@
   async function runSearch(location, address) {
     showLoading();
     stopNavigation();
+    _stopTransitRefresh();
     showPanel(resultsPanel);
     currentDest = null;
     try {
@@ -618,6 +647,8 @@
       renderNearestList(hospList,   nearbyHospitals, 'name', location.lat, location.lng, 8);
       renderNearestList(parksList,  nearbyParks,     'name', location.lat, location.lng, 8);
       renderHazardList(hazardsList, hazards, location.lat, location.lng);
+
+      _startTransitRefresh();
 
     } catch (err) {
       console.error('Search failed:', err);

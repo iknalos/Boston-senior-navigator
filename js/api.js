@@ -798,6 +798,68 @@
     }
   }
 
+  /**
+   * Fetch all currently active MBTA vehicles (buses, light rail, subway).
+   * Returns lat/lng, bearing, route info, and status for each vehicle.
+   * No API key required. Filter by radius client-side.
+   *
+   * @returns {Promise<Array<{id, lat, lng, bearing, status, label,
+   *   routeId, routeName, routeLongName, routeType, routeColor, routeTextColor}>>}
+   */
+  async function fetchMBTAVehicles() {
+    try {
+      const params = new URLSearchParams({
+        'filter[route_type]': '0,1,3',
+        'include': 'route',
+        'page[limit]': '500',
+      });
+      const res = await fetch(`${MBTA_BASE}/vehicles?${params}`, {
+        headers: { Accept: 'application/vnd.api+json' },
+      });
+      if (!res.ok) throw new Error(`MBTA vehicles HTTP ${res.status}`);
+      const json = await res.json();
+
+      const routeMap = {};
+      (json.included || []).forEach(function (inc) {
+        if (inc.type === 'route') {
+          routeMap[inc.id] = {
+            name:      inc.attributes.short_name || inc.attributes.long_name || inc.id,
+            longName:  inc.attributes.long_name  || '',
+            type:      inc.attributes.type,
+            color:     inc.attributes.color      || '1a3a5c',
+            textColor: inc.attributes.text_color || 'ffffff',
+          };
+        }
+      });
+
+      return (json.data || [])
+        .filter(function (v) {
+          return v.attributes && v.attributes.latitude && v.attributes.longitude;
+        })
+        .map(function (v) {
+          const rid   = v.relationships.route && v.relationships.route.data && v.relationships.route.data.id;
+          const route = rid ? (routeMap[rid] || {}) : {};
+          return {
+            id:             v.id,
+            lat:            v.attributes.latitude,
+            lng:            v.attributes.longitude,
+            bearing:        v.attributes.bearing || 0,
+            status:         v.attributes.current_status || '',
+            label:          v.attributes.label || '',
+            routeId:        rid || '',
+            routeName:      route.name      || rid || '?',
+            routeLongName:  route.longName  || '',
+            routeType:      route.type      !== undefined ? route.type : 3,
+            routeColor:     route.color     || '1a3a5c',
+            routeTextColor: route.textColor || 'ffffff',
+          };
+        });
+    } catch (err) {
+      console.error('[BostonAPI] fetchMBTAVehicles failed:', err);
+      return [];
+    }
+  }
+
   // ─── Export ───────────────────────────────────────────────────────────────────
 
   const BostonAPI = {
@@ -812,6 +874,7 @@
     fetchMBTAPredictions,
     fetchMBTARoutesForStop,
     planTransitRoute,
+    fetchMBTAVehicles,
 
     // Expose constants for callers that want to do their own queries
     CKAN_BASE,

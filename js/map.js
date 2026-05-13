@@ -16,10 +16,11 @@
 
   // Layer groups for each data category
   var _layers = {
-    hospitals: null,
-    parks: null,
-    hazards: null,
+    hospitals:    null,
+    parks:        null,
+    hazards:      null,
     userLocation: null,
+    transit:      null,   // live MBTA vehicle positions
   };
 
   // The Leaflet layer-control instance (kept so we can re-add overlays)
@@ -172,6 +173,19 @@
       '}',
       /* Emoji icon wrapper */
       '.bfm-emoji-icon { background: none; border: none; }',
+      /* Live transit vehicle badge */
+      '.bfm-vehicle-icon { background: none; border: none; }',
+      '.bfm-vehicle-badge {',
+      '  border-radius: 50%;',
+      '  display: flex;',
+      '  align-items: center;',
+      '  justify-content: center;',
+      '  font-weight: 700;',
+      '  border: 2px solid rgba(0,0,0,0.22);',
+      '  box-shadow: 0 1px 4px rgba(0,0,0,0.45);',
+      '  overflow: hidden;',
+      '  line-height: 1;',
+      '}',
       /* Highlighted marker — amber glow + scale up */
       '.bfm-highlight-icon span {',
       '  filter: drop-shadow(0 0 5px #f5a623) drop-shadow(0 0 10px #f5a62388);',
@@ -253,10 +267,11 @@
     }).addTo(_map);
 
     // Initialise empty layer groups and add them to the map
-    _layers.hospitals = L.layerGroup().addTo(_map);
-    _layers.parks = L.layerGroup().addTo(_map);
-    _layers.hazards = L.layerGroup().addTo(_map);
+    _layers.hospitals    = L.layerGroup().addTo(_map);
+    _layers.parks        = L.layerGroup().addTo(_map);
+    _layers.hazards      = L.layerGroup().addTo(_map);
     _layers.userLocation = L.layerGroup().addTo(_map);
+    _layers.transit      = L.layerGroup().addTo(_map);
 
     // Layer control (overlays only — no base-layer switcher needed)
     var overlays = {
@@ -264,6 +279,7 @@
       '<span style="font-size:16px;">&#127795; Accessible Parks</span>': _layers.parks,
       '<span style="font-size:16px;">&#9888;&#65039; 311 Hazards</span>': _layers.hazards,
       '<span style="font-size:16px;">&#127968; Your Location</span>': _layers.userLocation,
+      '<span style="font-size:16px;">&#128652; Live Transit</span>': _layers.transit,
     };
 
     _layerControl = L.control.layers(null, overlays, {
@@ -581,6 +597,72 @@
     return latlng;
   }
 
+  // ---------------------------------------------------------------------------
+  // Live transit vehicle helpers
+  // ---------------------------------------------------------------------------
+
+  // Known MBTA rail route abbreviations (short_name is empty for these)
+  var _RAIL_ABBREV = {
+    'Red Line': 'RL', 'Orange Line': 'OL', 'Blue Line': 'BL',
+    'Green Line': 'GL', 'Green Line B': 'GB', 'Green Line C': 'GC',
+    'Green Line D': 'GD', 'Green Line E': 'GE',
+    'Silver Line Way': 'SL', 'SL1': 'SL1', 'SL2': 'SL2', 'SL3': 'SL3',
+    'SL4': 'SL4', 'SL5': 'SL5', 'Mattapan Trolley': 'MT',
+  };
+
+  function _vehicleLabel(routeName, routeType) {
+    if (!routeName || routeName === '?') return '?';
+    if (routeType === 0 || routeType === 1) {
+      return _RAIL_ABBREV[routeName] || routeName.slice(0, 2).toUpperCase();
+    }
+    return routeName.length > 4 ? routeName.slice(0, 4) : routeName;
+  }
+
+  function _makeVehicleIcon(routeName, routeType, bgColor, textColor) {
+    var label = _vehicleLabel(routeName, routeType);
+    var bg    = bgColor    && bgColor    !== '000000' ? '#' + bgColor    : '#1a3a5c';
+    var fg    = textColor  && textColor  !== '000000' ? '#' + textColor  : '#ffffff';
+    // Rail vehicles render slightly larger than bus
+    var sz    = (routeType === 0 || routeType === 1) ? 26 : 22;
+    var fs    = sz <= 22 ? '9px' : '10px';
+    return L.divIcon({
+      html: '<div class="bfm-vehicle-badge" style="background:' + bg + ';color:' + fg
+          + ';width:' + sz + 'px;height:' + sz + 'px;font-size:' + fs + ';">'
+          + label + '</div>',
+      className: 'bfm-vehicle-icon',
+      iconSize:   [sz, sz],
+      iconAnchor: [sz / 2, sz / 2],
+      popupAnchor: [0, -(sz / 2 + 2)],
+    });
+  }
+
+  /**
+   * plotTransitVehicles(vehicles)
+   * Clears the transit layer and re-draws all vehicle badges.
+   * Each vehicle shows a colored route-badge marker; clicking opens a popup.
+   */
+  function plotTransitVehicles(vehicles) {
+    if (!_map) return;
+    _layers.transit.clearLayers();
+    if (!vehicles || !vehicles.length) return;
+
+    vehicles.forEach(function (v) {
+      if (!v.lat || !v.lng) return;
+      var icon = _makeVehicleIcon(v.routeName, v.routeType, v.routeColor, v.routeTextColor);
+      var status = (v.status || '').replace(/_/g, ' ').toLowerCase();
+      var popup =
+        '<div class="bfm-popup">' +
+        '<strong class="bfm-popup-name">' + _esc(v.routeName) + '</strong>' +
+        (v.routeLongName ? '<p class="bfm-popup-address">' + _esc(v.routeLongName) + '</p>' : '') +
+        '<p class="bfm-popup-desc">Vehicle #' + _esc(v.label) + '</p>' +
+        (status ? '<p class="bfm-popup-meta">' + status + '</p>' : '') +
+        '</div>';
+      L.marker([v.lat, v.lng], { icon: icon, zIndexOffset: 500 })
+        .bindPopup(popup, { maxWidth: 220 })
+        .addTo(_layers.transit);
+    });
+  }
+
   /**
    * clearAll()
    * Removes all markers and the user-location circle from the map.
@@ -630,6 +712,7 @@
     clearHoverLine: clearHoverLine,
     highlightMarker: highlightMarker,
     clearHighlight: clearHighlight,
+    plotTransitVehicles: plotTransitVehicles,
     drawRoute: drawRoute,
     clearRoute: clearRoute,
     fitRoutes: fitRoutes,
