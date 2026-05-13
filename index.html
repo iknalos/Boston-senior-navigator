@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Age-Friendly Boston — Find hospitals, safe parks, and resources near your Boston address." />
+  <title>Age-Friendly Boston</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Loading spinner overlay -->
+  <div id="loading-overlay" class="loading-overlay" aria-live="polite" aria-label="Loading results" hidden>
+    <div class="spinner-box" role="status">
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="spinner-label">Finding resources&hellip;</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       HEADER
+  ============================================================ -->
+  <header class="site-header" role="banner">
+    <div class="header-inner">
+      <div class="header-brand">
+        <span class="header-icon" aria-hidden="true">&#127968;</span>
+        <div>
+          <h1 class="site-title">Age-Friendly Boston</h1>
+          <p class="site-tagline">Find hospitals, safe parks, and resources near you</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       SEARCH BAR
+  ============================================================ -->
+  <section class="search-section" aria-label="Address search">
+    <div class="search-inner">
+      <label for="address-input" class="search-label">Enter a Boston address:</label>
+      <div class="search-row">
+        <input
+          id="address-input"
+          class="search-input"
+          type="text"
+          placeholder="e.g. 1 City Hall Square, Boston, MA"
+          autocomplete="street-address"
+          aria-required="true"
+          aria-describedby="search-hint"
+        />
+        <button id="search-btn" class="search-btn" type="button" aria-label="Find Resources near entered address">
+          Find Resources
+        </button>
+      </div>
+      <p id="search-hint" class="search-hint">Type a full Boston address and press &ldquo;Find Resources&rdquo;</p>
+      <p id="search-error" class="search-error" role="alert" aria-live="assertive" hidden></p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       MAIN LAYOUT: sidebar + map
+  ============================================================ -->
+  <main class="main-layout" id="main-content">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" aria-label="Search results summary" id="results-sidebar">
+
+      <div id="results-placeholder" class="results-placeholder">
+        <span class="placeholder-icon" aria-hidden="true">&#128270;</span>
+        <p>Enter an address above to see nearby resources.</p>
+      </div>
+
+      <div id="results-panel" class="results-panel" hidden>
+
+        <h2 class="results-heading">Nearby Resources</h2>
+        <p id="results-address" class="results-address"></p>
+
+        <!-- Hospitals card -->
+        <div class="result-card result-card--hospitals" role="region" aria-labelledby="hosp-heading">
+          <div class="result-card__icon" aria-hidden="true">&#127973;</div>
+          <div class="result-card__body">
+            <h3 class="result-card__heading" id="hosp-heading">Hospitals</h3>
+            <p class="result-card__count">
+              <span id="hosp-count" class="count-number">—</span>
+              <span class="count-label"> found nearby</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Parks card -->
+        <div class="result-card result-card--parks" role="region" aria-labelledby="parks-heading">
+          <div class="result-card__icon" aria-hidden="true">&#127807;</div>
+          <div class="result-card__body">
+            <h3 class="result-card__heading" id="parks-heading">Accessible Parks</h3>
+            <p class="result-card__count">
+              <span id="parks-count" class="count-number">—</span>
+              <span class="count-label"> found nearby</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Hazards card -->
+        <div class="result-card result-card--hazards" role="region" aria-labelledby="hazards-heading">
+          <div class="result-card__icon" aria-hidden="true">&#9888;</div>
+          <div class="result-card__body">
+            <h3 class="result-card__heading" id="hazards-heading">Hazards (311 Reports)</h3>
+            <p class="result-card__count">
+              <span id="hazards-count" class="count-number">—</span>
+              <span class="count-label"> complaints nearby</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Vulnerability badge -->
+        <div class="vulnerability-section" role="region" aria-labelledby="vuln-heading">
+          <h3 class="vulnerability-heading" id="vuln-heading">Neighborhood Risk Level</h3>
+          <div id="vuln-badge" class="vuln-badge vuln-badge--unknown" aria-live="polite">
+            <span id="vuln-label">Unknown</span>
+          </div>
+          <p id="vuln-description" class="vuln-description"></p>
+        </div>
+
+      </div><!-- /#results-panel -->
+    </aside><!-- /.sidebar -->
+
+    <!-- MAP -->
+    <div class="map-wrapper" role="main" aria-label="Interactive map of Boston resources">
+      <div id="map" aria-label="Leaflet map"></div>
+    </div>
+
+  </main><!-- /.main-layout -->
+
+  <!-- ============================================================
+       FOOTER
+  ============================================================ -->
+  <footer class="site-footer" role="contentinfo">
+    <p>
+      Data from
+      <a
+        href="https://data.boston.gov"
+        target="_blank"
+        rel="noopener noreferrer"
+      >Analyze Boston (data.boston.gov)</a>
+      &mdash; City of Boston Open Data
+    </p>
+  </footer>
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN2GqEQ="
+    crossorigin=""
+  ></script>
+
+  <!-- App scripts (order matters) -->
+  <script src="js/api.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,715 @@
+/* ============================================================
+   Age-Friendly Boston — Design System
+   Elderly-friendly: large text, high contrast, big targets,
+   no motion-sickness-inducing animations.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. CSS Custom Properties (Design Tokens)
+   ------------------------------------------------------------ */
+:root {
+  /* Color palette */
+  --color-navy:        #1a3a5c;
+  --color-navy-dark:   #122840;
+  --color-navy-light:  #254f7a;
+  --color-amber:       #f5a623;
+  --color-amber-dark:  #d4881a;
+  --color-amber-light: #ffc85c;
+  --color-white:       #ffffff;
+  --color-off-white:   #f7f5f0;
+  --color-light-gray:  #e8e4dc;
+  --color-mid-gray:    #7a7268;
+  --color-dark-text:   #1c1a17;
+  --color-body-bg:     #f7f5f0;
+
+  /* Semantic colors */
+  --color-hospitals:   #1a5c3a;  /* deep green  */
+  --color-parks:       #2e6b1f;  /* forest green */
+  --color-hazards:     #8b2e00;  /* burnt orange  */
+  --color-low-risk:    #1a5c3a;
+  --color-med-risk:    #7a5000;
+  --color-high-risk:   #8b0000;
+
+  /* Typography */
+  --font-body:   system-ui, "Segoe UI", Georgia, "Times New Roman", serif;
+  --font-size-base:   22px;
+  --font-size-sm:     18px;
+  --font-size-lg:     26px;
+  --font-size-xl:     30px;
+  --font-size-2xl:    36px;
+  --line-height:      1.55;
+
+  /* Spacing */
+  --space-xs:   4px;
+  --space-sm:   8px;
+  --space-md:   16px;
+  --space-lg:   24px;
+  --space-xl:   32px;
+  --space-2xl:  48px;
+
+  /* Radii */
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+
+  /* Shadows */
+  --shadow-card:   0 2px 8px rgba(0,0,0,0.12);
+  --shadow-focus:  0 0 0 4px var(--color-amber);
+
+  /* Layout */
+  --header-height: auto;
+  --sidebar-width: 340px;
+  --min-target:    48px;
+}
+
+/* ------------------------------------------------------------
+   2. Reset & Base
+   ------------------------------------------------------------ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: var(--font-size-base);
+  scroll-behavior: auto; /* no smooth scroll — avoids motion issues */
+}
+
+body {
+  font-family:  var(--font-body);
+  font-size:    var(--font-size-base);
+  line-height:  var(--line-height);
+  color:        var(--color-dark-text);
+  background:   var(--color-body-bg);
+  min-height:   100vh;
+  display:      flex;
+  flex-direction: column;
+}
+
+/* Remove default list styling where needed */
+ul, ol {
+  list-style: none;
+}
+
+img, svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* ------------------------------------------------------------
+   3. Focus States — thick visible outlines for keyboard nav
+   ------------------------------------------------------------ */
+:focus-visible {
+  outline: 4px solid var(--color-amber);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* Remove focus ring for mouse users while keeping it for keyboard */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ------------------------------------------------------------
+   4. Typography helpers
+   ------------------------------------------------------------ */
+h1, h2, h3, h4 {
+  font-family: var(--font-body);
+  line-height: 1.25;
+  color: inherit;
+}
+
+a {
+  color: var(--color-navy);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--color-navy-light);
+}
+
+/* ------------------------------------------------------------
+   5. Site Header
+   ------------------------------------------------------------ */
+.site-header {
+  background-color: var(--color-navy);
+  color:            var(--color-white);
+  padding:          var(--space-lg) var(--space-xl);
+  box-shadow:       0 2px 6px rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin:    0 auto;
+}
+
+.header-brand {
+  display:     flex;
+  align-items: center;
+  gap:         var(--space-md);
+}
+
+.header-icon {
+  font-size: 2.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.site-title {
+  font-size:   var(--font-size-2xl);
+  font-weight: 700;
+  color:       var(--color-white);
+  letter-spacing: -0.01em;
+}
+
+.site-tagline {
+  font-size:  var(--font-size-sm);
+  color:      var(--color-amber-light);
+  margin-top: var(--space-xs);
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------
+   6. Search Section
+   ------------------------------------------------------------ */
+.search-section {
+  background:   var(--color-white);
+  border-bottom: 3px solid var(--color-light-gray);
+  padding:       var(--space-lg) var(--space-xl);
+  flex-shrink: 0;
+}
+
+.search-inner {
+  max-width: 900px;
+  margin:    0 auto;
+}
+
+.search-label {
+  display:     block;
+  font-size:   var(--font-size-base);
+  font-weight: 700;
+  color:       var(--color-navy);
+  margin-bottom: var(--space-sm);
+}
+
+.search-row {
+  display: flex;
+  gap:     var(--space-sm);
+  align-items: stretch;
+}
+
+.search-input {
+  flex:           1;
+  font-family:    var(--font-body);
+  font-size:      var(--font-size-base);
+  padding:        var(--space-md) var(--space-lg);
+  min-height:     var(--min-target);
+  border:         2px solid var(--color-navy);
+  border-radius:  var(--radius-md);
+  color:          var(--color-dark-text);
+  background:     var(--color-white);
+  transition:     border-color 0.15s;
+}
+
+.search-input::placeholder {
+  color:       var(--color-mid-gray);
+  font-style:  italic;
+}
+
+.search-input:hover {
+  border-color: var(--color-navy-light);
+}
+
+.search-input:focus-visible {
+  outline:      4px solid var(--color-amber);
+  outline-offset: 2px;
+  border-color: var(--color-navy);
+}
+
+.search-btn {
+  font-family:   var(--font-body);
+  font-size:     var(--font-size-base);
+  font-weight:   700;
+  padding:       var(--space-md) var(--space-xl);
+  min-height:    var(--min-target);
+  min-width:     200px;
+  background:    var(--color-amber);
+  color:         var(--color-navy-dark);
+  border:        2px solid var(--color-amber-dark);
+  border-radius: var(--radius-md);
+  cursor:        pointer;
+  white-space:   nowrap;
+  letter-spacing: 0.01em;
+}
+
+.search-btn:hover {
+  background:   var(--color-amber-dark);
+  color:        var(--color-white);
+  border-color: var(--color-amber-dark);
+}
+
+.search-btn:active {
+  background:  var(--color-amber-dark);
+  transform:   translateY(1px);
+}
+
+.search-btn:focus-visible {
+  outline:       4px solid var(--color-navy);
+  outline-offset: 3px;
+}
+
+.search-hint {
+  margin-top:  var(--space-sm);
+  font-size:   var(--font-size-sm);
+  color:       var(--color-mid-gray);
+}
+
+.search-error {
+  margin-top:  var(--space-sm);
+  font-size:   var(--font-size-sm);
+  font-weight: 700;
+  color:       var(--color-hazards);
+  padding:     var(--space-sm) var(--space-md);
+  background:  #fff3f0;
+  border:      2px solid var(--color-hazards);
+  border-radius: var(--radius-sm);
+}
+
+/* ------------------------------------------------------------
+   7. Main Layout (sidebar + map)
+   ------------------------------------------------------------ */
+.main-layout {
+  display:        flex;
+  flex-direction: row;
+  flex:           1 1 auto;
+  overflow:       hidden;
+  min-height:     0;
+}
+
+/* --- Sidebar ------------------------------------------------ */
+.sidebar {
+  width:          var(--sidebar-width);
+  flex-shrink:    0;
+  background:     var(--color-white);
+  border-right:   3px solid var(--color-light-gray);
+  overflow-y:     auto;
+  padding:        var(--space-lg);
+  display:        flex;
+  flex-direction: column;
+}
+
+/* Placeholder state (no search yet) */
+.results-placeholder {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  text-align:      center;
+  flex:            1;
+  padding:         var(--space-xl);
+  color:           var(--color-mid-gray);
+  gap:             var(--space-md);
+}
+
+.placeholder-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.results-placeholder p {
+  font-size:  var(--font-size-base);
+  max-width:  240px;
+  line-height: var(--line-height);
+}
+
+/* Results panel */
+.results-panel {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-md);
+}
+
+.results-heading {
+  font-size:     var(--font-size-lg);
+  font-weight:   700;
+  color:         var(--color-navy);
+  border-bottom: 2px solid var(--color-light-gray);
+  padding-bottom: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.results-address {
+  font-size:   var(--font-size-sm);
+  color:       var(--color-mid-gray);
+  font-style:  italic;
+  margin-top:  calc(-1 * var(--space-xs));
+}
+
+/* --- Result Cards ------------------------------------------- */
+.result-card {
+  display:       flex;
+  align-items:   flex-start;
+  gap:           var(--space-md);
+  background:    var(--color-off-white);
+  border:        2px solid var(--color-light-gray);
+  border-radius: var(--radius-lg);
+  padding:       var(--space-md) var(--space-lg);
+  box-shadow:    var(--shadow-card);
+}
+
+.result-card--hospitals {
+  border-left: 5px solid var(--color-hospitals);
+}
+
+.result-card--parks {
+  border-left: 5px solid var(--color-parks);
+}
+
+.result-card--hazards {
+  border-left: 5px solid var(--color-hazards);
+}
+
+.result-card__icon {
+  font-size:   2rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top:  2px;
+}
+
+.result-card__heading {
+  font-size:   var(--font-size-base);
+  font-weight: 700;
+  color:       var(--color-dark-text);
+  margin-bottom: var(--space-xs);
+}
+
+.result-card__count {
+  font-size: var(--font-size-base);
+  color:     var(--color-dark-text);
+}
+
+.count-number {
+  font-size:   var(--font-size-xl);
+  font-weight: 700;
+  color:       var(--color-navy);
+  line-height: 1;
+}
+
+.result-card--hospitals .count-number { color: var(--color-hospitals); }
+.result-card--parks    .count-number { color: var(--color-parks);    }
+.result-card--hazards  .count-number { color: var(--color-hazards);  }
+
+.count-label {
+  font-size: var(--font-size-sm);
+  color:     var(--color-mid-gray);
+}
+
+/* --- Vulnerability Badge ------------------------------------ */
+.vulnerability-section {
+  background:    var(--color-off-white);
+  border:        2px solid var(--color-light-gray);
+  border-radius: var(--radius-lg);
+  padding:       var(--space-md) var(--space-lg);
+  box-shadow:    var(--shadow-card);
+}
+
+.vulnerability-heading {
+  font-size:     var(--font-size-base);
+  font-weight:   700;
+  color:         var(--color-dark-text);
+  margin-bottom: var(--space-md);
+}
+
+.vuln-badge {
+  display:        inline-flex;
+  align-items:    center;
+  justify-content: center;
+  padding:        var(--space-sm) var(--space-xl);
+  border-radius:  var(--radius-md);
+  font-size:      var(--font-size-lg);
+  font-weight:    700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  min-width:      140px;
+  text-align:     center;
+}
+
+.vuln-badge--unknown {
+  background: var(--color-light-gray);
+  color:      var(--color-mid-gray);
+  border:     2px solid var(--color-mid-gray);
+}
+
+.vuln-badge--low {
+  background: #d4edda;
+  color:      var(--color-low-risk);
+  border:     2px solid var(--color-low-risk);
+}
+
+.vuln-badge--medium {
+  background: #fff3cd;
+  color:      var(--color-med-risk);
+  border:     2px solid var(--color-med-risk);
+}
+
+.vuln-badge--high {
+  background: #f8d7da;
+  color:      var(--color-high-risk);
+  border:     2px solid var(--color-high-risk);
+}
+
+.vuln-description {
+  margin-top:  var(--space-sm);
+  font-size:   var(--font-size-sm);
+  color:       var(--color-mid-gray);
+  line-height: var(--line-height);
+}
+
+/* --- Map Wrapper -------------------------------------------- */
+.map-wrapper {
+  flex:     1 1 auto;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+#map {
+  position: absolute;
+  inset:    0;
+  width:    100%;
+  height:   100%;
+  background: #cdd8e3; /* tile placeholder color */
+}
+
+/* ------------------------------------------------------------
+   8. Loading Spinner Overlay
+   ------------------------------------------------------------ */
+.loading-overlay {
+  position:         fixed;
+  inset:            0;
+  z-index:          9999;
+  background:       rgba(26, 58, 92, 0.55);
+  display:          flex;
+  align-items:      center;
+  justify-content:  center;
+}
+
+/* The [hidden] attribute hides it by default */
+.loading-overlay[hidden] {
+  display: none;
+}
+
+.spinner-box {
+  background:     var(--color-white);
+  border-radius:  var(--radius-lg);
+  padding:        var(--space-xl) var(--space-2xl);
+  text-align:     center;
+  box-shadow:     0 6px 24px rgba(0,0,0,0.25);
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            var(--space-md);
+  min-width:      220px;
+}
+
+/* Spinner ring — CSS-only, no keyframe with translateX to avoid motion issues */
+@media (prefers-reduced-motion: no-preference) {
+  .spinner {
+    width:        56px;
+    height:       56px;
+    border:       6px solid var(--color-light-gray);
+    border-top-color: var(--color-amber);
+    border-radius: 50%;
+    animation:    spin 0.9s linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Replace spinning ring with a pulsing dot for reduced-motion users */
+  .spinner {
+    width:        56px;
+    height:       56px;
+    background:   var(--color-amber);
+    border-radius: 50%;
+    opacity:      0.8;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner-label {
+  font-size:   var(--font-size-base);
+  font-weight: 600;
+  color:       var(--color-navy);
+}
+
+/* ------------------------------------------------------------
+   9. Site Footer
+   ------------------------------------------------------------ */
+.site-footer {
+  background:    var(--color-navy-dark);
+  color:         #c8d8e8;
+  text-align:    center;
+  padding:       var(--space-md) var(--space-xl);
+  font-size:     var(--font-size-sm);
+  flex-shrink:   0;
+}
+
+.site-footer a {
+  color:              var(--color-amber-light);
+  text-decoration:    underline;
+  text-underline-offset: 3px;
+}
+
+.site-footer a:hover {
+  color: var(--color-white);
+}
+
+/* ------------------------------------------------------------
+   10. Leaflet Overrides (make popups readable)
+   ------------------------------------------------------------ */
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius-md) !important;
+  font-family:   var(--font-body) !important;
+  font-size:     var(--font-size-sm) !important;
+  color:         var(--color-dark-text) !important;
+  box-shadow:    0 4px 16px rgba(0,0,0,0.2) !important;
+}
+
+.leaflet-popup-content {
+  font-size:   var(--font-size-sm) !important;
+  line-height: var(--line-height) !important;
+  margin:      12px 16px !important;
+}
+
+.leaflet-popup-tip-container {
+  margin-top: -1px;
+}
+
+/* Leaflet zoom/attribution */
+.leaflet-control-zoom a {
+  font-size:   1.2rem !important;
+  width:       36px !important;
+  height:      36px !important;
+  line-height: 36px !important;
+}
+
+/* ------------------------------------------------------------
+   11. Utility helpers
+   ------------------------------------------------------------ */
+.sr-only {
+  position: absolute;
+  width:    1px;
+  height:   1px;
+  padding:  0;
+  margin:   -1px;
+  overflow: hidden;
+  clip:     rect(0,0,0,0);
+  white-space: nowrap;
+  border:   0;
+}
+
+/* ------------------------------------------------------------
+   12. Responsive — Mobile-first breakpoints
+   ------------------------------------------------------------ */
+
+/* ---- Small screens (< 768px): single-column stacked layout ---- */
+@media (max-width: 767px) {
+  :root {
+    --font-size-base: 18px;
+    --font-size-sm:   16px;
+    --font-size-lg:   22px;
+    --font-size-xl:   26px;
+    --font-size-2xl:  28px;
+    --sidebar-width:  100%;
+  }
+
+  .site-header {
+    padding: var(--space-md) var(--space-md);
+  }
+
+  .site-title {
+    font-size: 1.5rem;
+  }
+
+  .search-section {
+    padding: var(--space-md);
+  }
+
+  .search-row {
+    flex-direction: column;
+  }
+
+  .search-btn {
+    width:    100%;
+    min-width: unset;
+  }
+
+  /* Stack: map first (so it appears above fold), then sidebar */
+  .main-layout {
+    flex-direction: column-reverse;
+    overflow:       visible;
+    height:         auto;
+  }
+
+  .sidebar {
+    width:      100%;
+    border-right:  none;
+    border-top: 3px solid var(--color-light-gray);
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .map-wrapper {
+    position: relative;
+    width:    100%;
+    height:   55vw;
+    min-height: 260px;
+    flex:     none;
+  }
+
+  .site-footer {
+    padding: var(--space-md);
+    font-size: 15px;
+  }
+}
+
+/* ---- Medium screens (768px–1023px): narrower sidebar ---- */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --sidebar-width: 280px;
+    --font-size-base: 19px;
+  }
+
+  .main-layout {
+    height: calc(100vh - 180px); /* approximate header + search height */
+  }
+}
+
+/* ---- Large screens (>= 1024px): full sidebar+map ---- */
+@media (min-width: 1024px) {
+  .main-layout {
+    /* Take all remaining vertical space between search and footer */
+    height: calc(100vh - 200px);
+    min-height: 400px;
+  }
+}
+
+/* ---- Very large screens ---- */
+@media (min-width: 1400px) {
+  :root {
+    --sidebar-width: 380px;
+  }
+
+  .search-inner {
+    max-width: 1100px;
+  }
+}
+
+/* ============================================================
+   End of Age-Friendly Boston styles
+   ============================================================ */
