@@ -506,7 +506,10 @@
       li.addEventListener('mouseleave', function () {
         if (map) BostonMap.clearHoverLine();
       });
-      const go = function () { showDirectionsPanel({ name: iName, address: iAddr, lat: iLat, lng: iLng }, d); };
+      const go = function () {
+        if (map) BostonMap.highlightMarker(iLat, iLng);
+        showDirectionsPanel({ name: iName, address: iAddr, lat: iLat, lng: iLng }, d);
+      };
       li.addEventListener('click', go);
       li.addEventListener('keydown', function (e) { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); go(); } });
       ulEl.appendChild(li);
@@ -649,7 +652,7 @@
 
     directionsBackBtn.addEventListener('click', function () {
       showPanel(resultsPanel);
-      if (map) { BostonMap.clearRoute(); BostonMap.clearHoverLine(); }
+      if (map) { BostonMap.clearRoute(); BostonMap.clearHoverLine(); BostonMap.clearHighlight(); }
     });
 
     directionsWalkBtn.addEventListener('click', showWalkingRoute);

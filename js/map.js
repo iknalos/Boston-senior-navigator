@@ -37,6 +37,17 @@
   // Live GPS marker
   var _liveMarker = null;
 
+  // Marker registry for highlight-on-click: key "lat,lng" -> {marker, emoji, size}
+  var _markerRegistry = {};
+  var _highlightedEntry = null;
+
+  // ---------------------------------------------------------------------------
+  // Helper: stable registry key for a lat/lng pair
+  // ---------------------------------------------------------------------------
+  function _markerKey(lat, lng) {
+    return parseFloat(lat).toFixed(5) + ',' + parseFloat(lng).toFixed(5);
+  }
+
   // ---------------------------------------------------------------------------
   // Helper: create a DivIcon with an emoji and an accessible label
   // ---------------------------------------------------------------------------
@@ -161,6 +172,11 @@
       '}',
       /* Emoji icon wrapper */
       '.bfm-emoji-icon { background: none; border: none; }',
+      /* Highlighted marker — amber glow + scale up */
+      '.bfm-highlight-icon span {',
+      '  filter: drop-shadow(0 0 5px #f5a623) drop-shadow(0 0 10px #f5a62388);',
+      '  display: block;',
+      '}',
     ].join('\n');
     document.head.appendChild(style);
   }
@@ -278,9 +294,10 @@
       if (h.lat == null || h.lng == null) return;
       var desc = h.description || 'This hospital provides medical services and emergency care.';
       var popup = _buildPopup(h.name, h.address, desc);
-      L.marker([h.lat, h.lng], { icon: icon, alt: h.name || 'Hospital' })
+      var marker = L.marker([h.lat, h.lng], { icon: icon, alt: h.name || 'Hospital' })
         .bindPopup(popup, { maxWidth: 300 })
         .addTo(_layers.hospitals);
+      _markerRegistry[_markerKey(h.lat, h.lng)] = { marker: marker, emoji: '🏥', cls: 'bfm-hospital-icon', size: 36 };
     });
   }
 
@@ -299,9 +316,10 @@
       if (p.lat == null || p.lng == null) return;
       var desc = p.description || 'This park has wheelchair-accessible entrances and paved pathways.';
       var popup = _buildPopup(p.name, p.address, desc);
-      L.marker([p.lat, p.lng], { icon: icon, alt: p.name || 'Accessible Park' })
+      var marker = L.marker([p.lat, p.lng], { icon: icon, alt: p.name || 'Accessible Park' })
         .bindPopup(popup, { maxWidth: 300 })
         .addTo(_layers.parks);
+      _markerRegistry[_markerKey(p.lat, p.lng)] = { marker: marker, emoji: '🌳', cls: 'bfm-park-icon', size: 36 };
     });
   }
 
@@ -494,8 +512,8 @@
 
   /**
    * drawHoverLine(destLat, destLng)
-   * Draws a dashed blue polyline from the user's home marker to the destination.
-   * Requires setUserLocation() to have been called first.
+   * Draws a dashed polyline from the user's home marker to the destination
+   * and fits the map to show both points smoothly.
    */
   function drawHoverLine(destLat, destLng) {
     if (!_map) return;
@@ -504,8 +522,13 @@
     if (!origin) return;
     _hoverPolyline = L.polyline(
       [origin, [destLat, destLng]],
-      { color: '#1a73e8', weight: 3, opacity: 0.8, dashArray: '8 6' }
+      { color: '#1a73e8', weight: 4, opacity: 0.85, dashArray: '10 6' }
     ).addTo(_map);
+    // Fit the viewport to show both user home and the hovered destination
+    _map.fitBounds(
+      L.latLngBounds([origin, [destLat, destLng]]),
+      { padding: [70, 70], maxZoom: 17, animate: true, duration: 0.35 }
+    );
   }
 
   /**
@@ -517,6 +540,34 @@
       _map.removeLayer(_hoverPolyline);
       _hoverPolyline = null;
     }
+  }
+
+  /**
+   * highlightMarker(lat, lng)
+   * Enlarges and adds an amber glow to the marker at the given coords,
+   * and opens its popup. Clears any previous highlight first.
+   */
+  function highlightMarker(lat, lng) {
+    clearHighlight();
+    var key = _markerKey(lat, lng);
+    var entry = _markerRegistry[key];
+    if (!entry) return;
+    _highlightedEntry = entry;
+    var bigIcon = _makeEmojiIcon(entry.emoji, 50, entry.cls + ' bfm-highlight-icon');
+    entry.marker.setIcon(bigIcon);
+    entry.marker.openPopup();
+  }
+
+  /**
+   * clearHighlight()
+   * Restores the previously highlighted marker to its default size.
+   */
+  function clearHighlight() {
+    if (!_highlightedEntry) return;
+    var e = _highlightedEntry;
+    e.marker.setIcon(_makeEmojiIcon(e.emoji, e.size, e.cls));
+    e.marker.closePopup();
+    _highlightedEntry = null;
   }
 
   function _getUserLatLng() {
@@ -537,6 +588,8 @@
    */
   function clearAll() {
     if (!_map) return;
+    clearHighlight();
+    _markerRegistry = {};
     Object.keys(_layers).forEach(function (key) {
       if (_layers[key]) {
         _layers[key].clearLayers();
@@ -575,6 +628,8 @@
     flyToLocation: flyToLocation,
     drawHoverLine: drawHoverLine,
     clearHoverLine: clearHoverLine,
+    highlightMarker: highlightMarker,
+    clearHighlight: clearHighlight,
     drawRoute: drawRoute,
     clearRoute: clearRoute,
     fitRoutes: fitRoutes,
