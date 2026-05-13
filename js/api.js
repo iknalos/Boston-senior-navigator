@@ -467,6 +467,165 @@
     }
   }
 
+  // ─── OSRM Walking Routing ────────────────────────────────────────────────────
+  // Uses the public OSRM demo server (project-osrm.org) — suitable for
+  // low-traffic civic apps. No API key required.
+
+  const OSRM_BASE = 'https://router.project-osrm.org/route/v1';
+
+  /**
+   * Fetch a walking route between two points using OSRM.
+   *
+   * @param {number} fromLat
+   * @param {number} fromLng
+   * @param {number} toLat
+   * @param {number} toLng
+   * @returns {Promise<{distance, duration, geometry, steps}|null>}
+   *   distance in metres, duration in seconds, geometry is GeoJSON LineString
+   */
+  async function fetchOSRMRoute(fromLat, fromLng, toLat, toLng) {
+    try {
+      const coords = `${fromLng},${fromLat};${toLng},${toLat}`;
+      const url = `${OSRM_BASE}/foot/${coords}?steps=true&overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.code !== 'Ok' || !data.routes || !data.routes.length) return null;
+      const route = data.routes[0];
+      return {
+        distance: route.distance,
+        duration: route.duration,
+        geometry: route.geometry,
+        steps: (route.legs[0].steps || []).map(s => ({
+          instruction: _buildOSRMInstruction(s),
+          icon:        _getTurnIcon(s),
+          distance:    s.distance,
+          type:        s.maneuver.type,
+        })),
+      };
+    } catch (err) {
+      console.error('[BostonAPI] fetchOSRMRoute failed:', err);
+      return null;
+    }
+  }
+
+  function _buildOSRMInstruction(step) {
+    const t = step.maneuver.type;
+    const m = step.maneuver.modifier || '';
+    const n = step.name || 'the road';
+    if (t === 'depart')    return 'Head ' + (m || 'forward') + ' on ' + n;
+    if (t === 'arrive')    return 'Arrive at destination';
+    if (t === 'new name')  return 'Continue onto ' + n;
+    if (t === 'continue')  return 'Continue on ' + n;
+    if (t === 'merge')     return 'Merge onto ' + n;
+    if (t === 'roundabout') return 'At roundabout, take exit onto ' + n;
+    if (t === 'turn' || t === 'end of road' || t === 'fork') {
+      if (m === 'left')         return 'Turn left onto ' + n;
+      if (m === 'right')        return 'Turn right onto ' + n;
+      if (m === 'slight left')  return 'Turn slightly left onto ' + n;
+      if (m === 'slight right') return 'Turn slightly right onto ' + n;
+      if (m === 'sharp left')   return 'Turn sharp left onto ' + n;
+      if (m === 'sharp right')  return 'Turn sharp right onto ' + n;
+      if (m === 'straight')     return 'Continue straight on ' + n;
+      if (m === 'uturn')        return 'Make a U-turn on ' + n;
+      return 'Turn onto ' + n;
+    }
+    return 'Continue to ' + n;
+  }
+
+  function _getTurnIcon(step) {
+    const t = step.maneuver.type;
+    const m = step.maneuver.modifier || '';
+    if (t === 'arrive')   return '📍';
+    if (t === 'depart')   return '🚶';
+    if (m === 'uturn')    return '↩';
+    if (m === 'left' || m === 'sharp left')   return '←';
+    if (m === 'right' || m === 'sharp right') return '→';
+    if (m === 'slight left')  return '↖';
+    if (m === 'slight right') return '↗';
+    return '↑';
+  }
+
+  // ─── MBTA Transit Routing ─────────────────────────────────────────────────────
+
+  /**
+   * Fetch MBTA routes that serve a specific stop.
+   *
+   * @param {string} stopId
+   * @returns {Promise<Array<{id, name, longName, type, color}>>}
+   */
+  async function fetchMBTARoutesForStop(stopId) {
+    try {
+      const res = await fetch(
+        `${MBTA_BASE}/routes?filter[stop]=${encodeURIComponent(stopId)}`,
+        { headers: { Accept: 'application/vnd.api+json' } }
+      );
+      if (!res.ok) throw new Error(`MBTA routes HTTP ${res.status}`);
+      const json = await res.json();
+      return (json.data || []).map(r => ({
+        id:       r.id,
+        name:     r.attributes.short_name || r.attributes.long_name || r.id,
+        longName: r.attributes.long_name || '',
+        type:     r.attributes.type,
+        color:    r.attributes.color || '1a3a5c',
+      }));
+    } catch (err) {
+      console.error('[BostonAPI] fetchMBTARoutesForStop failed:', err);
+      return [];
+    }
+  }
+
+  /**
+   * Plan a simplified transit itinerary:
+   *   walk → origin MBTA stop → [transit] → destination MBTA stop → walk
+   *
+   * Finds the nearest stop at each end, identifies common routes between them,
+   * and fetches OSRM walking legs + live MBTA predictions.
+   *
+   * @param {number} fromLat
+   * @param {number} fromLng
+   * @param {number} toLat
+   * @param {number} toLng
+   * @returns {Promise<{originStop, destStop, commonRoutes, originRoutes, predictions, walkToStop, walkFromStop}|null>}
+   */
+  async function planTransitRoute(fromLat, fromLng, toLat, toLng) {
+    try {
+      const [originStops, destStops] = await Promise.all([
+        fetchMBTANearbyStops(fromLat, fromLng),
+        fetchMBTANearbyStops(toLat, toLng),
+      ]);
+      if (!originStops.length) return null;
+
+      const originStop = originStops[0];
+      const destStop   = destStops[0] || null;
+
+      const tasks = [
+        fetchMBTARoutesForStop(originStop.id),
+        fetchMBTAPredictions(originStop.id),
+        fetchOSRMRoute(fromLat, fromLng, originStop.lat, originStop.lng),
+      ];
+      if (destStop) {
+        tasks.push(fetchMBTARoutesForStop(destStop.id));
+        tasks.push(fetchOSRMRoute(destStop.lat, destStop.lng, toLat, toLng));
+      }
+
+      const [originRoutes, predictions, walkToStop, ...rest] = await Promise.all(tasks);
+      const destRoutes   = rest[0] || [];
+      const walkFromStop = rest[1] || null;
+
+      const destRouteIds = new Set(destRoutes.map(r => r.id));
+      const commonRoutes = originRoutes.filter(r => destRouteIds.has(r.id));
+      const relevantPreds = (commonRoutes.length > 0
+        ? predictions.filter(p => commonRoutes.some(r => r.id === p.routeId))
+        : predictions).slice(0, 5);
+
+      return { originStop, destStop, originRoutes, commonRoutes, predictions: relevantPreds, walkToStop, walkFromStop };
+    } catch (err) {
+      console.error('[BostonAPI] planTransitRoute failed:', err);
+      return null;
+    }
+  }
+
   // ─── MBTA Live Data ──────────────────────────────────────────────────────────
 
   const MBTA_BASE = 'https://api-v3.mbta.com';
@@ -568,8 +727,11 @@
     fetchSocialVulnerability,
     geocodeAddress,
     searchBostonAddresses,
+    fetchOSRMRoute,
     fetchMBTANearbyStops,
     fetchMBTAPredictions,
+    fetchMBTARoutesForStop,
+    planTransitRoute,
 
     // Expose constants for callers that want to do their own queries
     CKAN_BASE,

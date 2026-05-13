@@ -31,6 +31,9 @@
   // Dashed hover polyline from home to a hovered resource
   var _hoverPolyline = null;
 
+  // Route layers (walking/transit polylines drawn on click)
+  var _routeLayers = [];
+
   // ---------------------------------------------------------------------------
   // Helper: create a DivIcon with an emoji and an accessible label
   // ---------------------------------------------------------------------------
@@ -377,6 +380,54 @@
   }
 
   /**
+   * drawRoute(geojsonGeometry, color, dashed)
+   * Draws a GeoJSON LineString on the map and stores the layer.
+   * Call fitRoutes() after all segments are drawn.
+   */
+  function drawRoute(geojsonGeometry, color, dashed) {
+    if (!_map || !geojsonGeometry) return;
+    var layer = L.geoJSON(geojsonGeometry, {
+      style: {
+        color:     color || '#1a73e8',
+        weight:    5,
+        opacity:   0.85,
+        dashArray: dashed ? '10 6' : null,
+        lineCap:   'round',
+        lineJoin:  'round',
+      },
+    }).addTo(_map);
+    _routeLayers.push(layer);
+  }
+
+  /**
+   * clearRoute()
+   * Removes all route polylines added by drawRoute().
+   */
+  function clearRoute() {
+    _routeLayers.forEach(function (layer) {
+      if (_map) _map.removeLayer(layer);
+    });
+    _routeLayers = [];
+  }
+
+  /**
+   * fitRoutes()
+   * Fits the map viewport to show all drawn route layers plus the home marker.
+   */
+  function fitRoutes() {
+    if (!_map) return;
+    var bounds = L.latLngBounds([]);
+    _routeLayers.forEach(function (layer) {
+      try { bounds.extend(layer.getBounds()); } catch (e) {}
+    });
+    var origin = _getUserLatLng();
+    if (origin) bounds.extend(L.latLng(origin[0], origin[1]));
+    if (bounds.isValid()) {
+      _map.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 });
+    }
+  }
+
+  /**
    * drawHoverLine(destLat, destLng)
    * Draws a dashed blue polyline from the user's home marker to the destination.
    * Requires setUserLocation() to have been called first.
@@ -431,6 +482,7 @@
       _userCircle = null;
     }
     clearHoverLine();
+    clearRoute();
   }
 
   /**
@@ -458,6 +510,9 @@
     flyToLocation: flyToLocation,
     drawHoverLine: drawHoverLine,
     clearHoverLine: clearHoverLine,
+    drawRoute: drawRoute,
+    clearRoute: clearRoute,
+    fitRoutes: fitRoutes,
   };
 
 }(window));

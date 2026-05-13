@@ -15,7 +15,7 @@
   />
 
   <!-- App styles -->
-  <link rel="stylesheet" href="css/style.css?v=9" />
+  <link rel="stylesheet" href="css/style.css?v=10" />
 </head>
 <body>
 
@@ -154,14 +154,12 @@
         </div>
 
         <div class="directions-links">
-          <a id="directions-walk-link" class="directions-link directions-link--walk"
-             href="#" target="_blank" rel="noopener noreferrer">
-            &#x1F6B6; Walking Directions
-          </a>
-          <a id="directions-transit-link" class="directions-link directions-link--transit"
-             href="#" target="_blank" rel="noopener noreferrer">
-            &#x1F68C; Bus / Train Directions
-          </a>
+          <button id="directions-walk-btn" class="directions-link directions-link--walk" type="button">
+            &#x1F6B6; Show Walking Route
+          </button>
+          <button id="directions-transit-btn" class="directions-link directions-link--transit" type="button">
+            &#x1F68C; Show Transit Route
+          </button>
         </div>
 
         <div class="mbta-section">
@@ -172,6 +170,16 @@
         </div>
 
       </div><!-- /#directions-panel -->
+
+      <!-- Route panel — step-by-step walking or transit itinerary -->
+      <div id="route-panel" class="route-panel" hidden>
+        <button id="route-back-btn" class="directions-back-btn" type="button">
+          &#8592; Back to Options
+        </button>
+        <div id="route-mode-label" class="route-mode-label"></div>
+        <div id="route-summary"    class="route-summary"></div>
+        <div id="route-steps"      class="route-steps"></div>
+      </div><!-- /#route-panel -->
 
     </aside><!-- /.sidebar -->
 
@@ -196,15 +204,15 @@
       &mdash; City of Boston Open Data
     </p>
   </footer>
-  <div class="site-version" aria-label="Version 13">v13</div>
+  <div class="site-version" aria-label="Version 14">v14</div>
 
   <!-- Leaflet JS (no integrity check to avoid SRI blocking) -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- App scripts (order matters) -->
-  <script src="js/api.js?v=13"></script>
-  <script src="js/map.js?v=13"></script>
-  <script src="js/app.js?v=13"></script>
+  <script src="js/api.js?v=14"></script>
+  <script src="js/map.js?v=14"></script>
+  <script src="js/app.js?v=14"></script>
 
 </body>
 </html>
