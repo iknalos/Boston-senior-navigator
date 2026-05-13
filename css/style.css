@@ -266,32 +266,20 @@ a:hover {
   outline-offset: 3px;
 }
 
-.search-hint-row {
-  display:     flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top:  3px;
-  gap:         var(--space-md);
-  flex-wrap:   wrap;
-}
-
-.search-hint {
-  font-size:   var(--font-size-sm);
-  color:       var(--color-mid-gray);
-}
 
 .locate-btn {
   font-family:  var(--font-body);
   font-size:    var(--font-size-sm);
   font-weight:  600;
-  padding:      var(--space-xs) var(--space-md);
+  padding:      7px var(--space-md);
   background:   transparent;
   color:        var(--color-navy);
   border:       2px solid var(--color-navy);
   border-radius: var(--radius-md);
   cursor:       pointer;
   white-space:  nowrap;
-  min-height:   36px;
+  min-height:   40px;
+  flex-shrink:  0;
 }
 
 .locate-btn:hover  { background: var(--color-navy); color: var(--color-white); }
