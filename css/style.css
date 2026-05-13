@@ -357,36 +357,65 @@ a:hover {
 /* Address autocomplete dropdown */
 .suggestions-list {
   position:     absolute;
-  top:          100%;
+  top:          calc(100% + 2px);
   left:         0;
   right:        0;
   z-index:      1000;
   background:   var(--color-white);
-  border:       2px solid var(--color-navy);
-  border-top:   none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  max-height:   220px;
+  border:       1px solid #ccc;
+  border-radius: var(--radius-md);
+  max-height:   280px;
   overflow-y:   auto;
   list-style:   none;
   margin:       0;
-  padding:      0;
-  box-shadow:   0 4px 12px rgba(0,0,0,0.15);
+  padding:      4px 0;
+  box-shadow:   0 6px 20px rgba(0,0,0,0.18);
 }
 
 .suggestions-list li {
-  padding:     10px var(--space-md);
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  padding:     9px 14px;
   cursor:      pointer;
-  font-size:   var(--font-size-sm);
-  color:       var(--color-dark-text);
-  border-bottom: 1px solid var(--color-light-gray);
-  line-height: 1.4;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .suggestions-list li:last-child { border-bottom: none; }
 .suggestions-list li:hover,
 .suggestions-list li[aria-selected="true"] {
-  background: var(--color-amber-light);
-  color:      var(--color-navy-dark);
+  background: #f0f4ff;
+}
+
+.sugg-icon {
+  font-size:  18px;
+  flex-shrink: 0;
+  color:      var(--color-navy);
+  opacity:    0.7;
+}
+
+.sugg-text {
+  display:    flex;
+  flex-direction: column;
+  gap:        2px;
+  min-width:  0;
+}
+
+.sugg-street {
+  font-size:   var(--font-size-sm);
+  font-weight: 600;
+  color:       var(--color-dark-text);
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+}
+
+.sugg-city {
+  font-size:  12px;
+  color:      var(--color-mid-gray);
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
 }
 
 .search-error {
