@@ -467,27 +467,20 @@
     }
   }
 
-  // ─── OSRM Walking Routing ────────────────────────────────────────────────────
-  // Uses the public OSRM demo server (project-osrm.org) — suitable for
-  // low-traffic civic apps. No API key required.
+  // ─── OSRM Routing ────────────────────────────────────────────────────────────
+  // Walking uses routing.openstreetmap.de/routed-foot — a dedicated pedestrian
+  // graph (uses sidewalks, paths, park cuts; avoids highways).
+  // Driving uses router.project-osrm.org which only runs the car profile.
 
-  const OSRM_BASE = 'https://router.project-osrm.org/route/v1';
+  const OSRM_FOOT_BASE    = 'https://routing.openstreetmap.de/routed-foot/route/v1/foot';
+  const OSRM_DRIVING_BASE = 'https://router.project-osrm.org/route/v1/driving';
 
-  /**
-   * Fetch a walking route between two points using OSRM.
-   *
-   * @param {number} fromLat
-   * @param {number} fromLng
-   * @param {number} toLat
-   * @param {number} toLng
-   * @returns {Promise<{distance, duration, geometry, steps}|null>}
-   *   distance in metres, duration in seconds, geometry is GeoJSON LineString
-   */
   async function fetchOSRMRoute(fromLat, fromLng, toLat, toLng, profile) {
     profile = profile || 'foot';
     try {
       const coords = `${fromLng},${fromLat};${toLng},${toLat}`;
-      const url = `${OSRM_BASE}/${profile}/${coords}?steps=true&overview=full&geometries=geojson`;
+      const base = profile === 'foot' ? OSRM_FOOT_BASE : OSRM_DRIVING_BASE;
+      const url = `${base}/${coords}?steps=true&overview=full&geometries=geojson`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
       const data = await res.json();
