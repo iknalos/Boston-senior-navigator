@@ -184,7 +184,13 @@
     if (!results.length) { hideSuggestions(); return; }
     results.forEach(function (r) {
       const li = document.createElement('li');
-      li.textContent = r.label;
+      const cityLine = [r.city, r.state, r.zip].filter(Boolean).join(', ');
+      li.innerHTML =
+        '<span class="sugg-icon" aria-hidden="true">&#128205;</span>' +
+        '<span class="sugg-text">' +
+          '<span class="sugg-street">' + _esc(r.street || r.label) + '</span>' +
+          (cityLine ? '<span class="sugg-city">' + _esc(cityLine) + '</span>' : '') +
+        '</span>';
       li.addEventListener('mousedown', function (e) {
         e.preventDefault();
         searchInput.value = r.label;
@@ -203,8 +209,8 @@
     const q = searchInput.value.trim();
     if (q.length < 2) { hideSuggestions(); return; }
     autocompleteTimer = setTimeout(function () {
-      BostonAPI.searchBostonAddresses(q).then(showSuggestions);
-    }, 200);
+      BostonAPI.searchAddresses(q).then(showSuggestions);
+    }, 250);
   });
 
   searchInput.addEventListener('blur', function () {
