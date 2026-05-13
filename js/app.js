@@ -728,8 +728,13 @@
     sorted.forEach(function ({ h, d }) {
       const li = document.createElement('li');
       const iName = h.title || h.type || 'Hazard';
+      let dateStr = '';
+      if (h.opened) {
+        try { dateStr = new Date(h.opened).toLocaleDateString([], { month: 'short', day: 'numeric' }); }
+        catch (e) { dateStr = h.opened.slice(5, 10); }
+      }
       li.innerHTML =
-        '<span class="place-name">⚠️ ' + _esc(iName) + '</span>' +
+        '<span class="place-name">⚠️ ' + _esc(iName) + (dateStr ? ' <span class="hazard-date">(' + _esc(dateStr) + ')</span>' : '') + '</span>' +
         '<span class="place-dist">' + formatDist(d) + '</span>';
       li.title = 'Click for directions';
       li.setAttribute('tabindex', '0');
