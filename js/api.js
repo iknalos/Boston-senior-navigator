@@ -230,50 +230,63 @@
    * @param {number} [radiusMiles=0.5]
    * @returns {Promise<Array<{id, title, type, address, lat, lng, opened, status, neighborhood}>>}
    */
-  async function fetch311Hazards(lat, lng, radiusMiles = 0.5) {
-    console.log(
-      `[BostonAPI] fetch311Hazards: searching within ${radiusMiles} mi of (${lat}, ${lng})`
-    );
+  async function fetch311Hazards(lat, lng, radiusMiles) {
+    radiusMiles = radiusMiles || 0.5;
+    console.log(`[BostonAPI] fetch311Hazards: ${radiusMiles} mi of (${lat}, ${lng})`);
     try {
-      // Fetch from the two most recent full-year resources plus the current year
+      // Bounding box slightly larger than search radius so we don't miss edge cases
+      const pad    = 0.014; // ~0.96 mi in each direction
+      const minLat = (lat - pad).toFixed(6);
+      const maxLat = (lat + pad).toFixed(6);
+      const minLng = (lng - pad).toFixed(6);
+      const maxLng = (lng + pad).toFixed(6);
+
+      // Build keyword WHERE clause (keywords are hardcoded, no injection risk)
+      const kwClause = HAZARD_KEYWORDS
+        .map(k => `LOWER(case_title) LIKE '%${k}%' OR LOWER(type) LIKE '%${k}%'`)
+        .join(' OR ');
+
       const resources = [
         RESOURCE_IDS.requests311_2026,
         RESOURCE_IDS.requests311_2025,
         RESOURCE_IDS.requests311_2024,
       ];
 
-      // Fetch each year in parallel; each call returns up to 5000 records
-      // (CKAN's practical max without heavy pagination on live datasets)
-      const yearFetches = resources.map((rid) =>
-        fetch311Year(rid, 5000).catch((err) => {
-          console.warn(`[BostonAPI] fetch311Hazards: skipped resource ${rid}:`, err.message);
-          return [];
-        })
-      );
+      // Query each year via CKAN SQL endpoint — filters by bbox + keywords server-side
+      // so we only transfer the ~100-300 nearby records instead of 5,000 random ones.
+      const yearFetches = resources.map(rid => {
+        const sql =
+          `SELECT case_enquiry_id, case_title, type, location, latitude, longitude, open_dt, case_status, neighborhood ` +
+          `FROM "${rid}" ` +
+          `WHERE latitude IS NOT NULL AND latitude <> '' ` +
+          `AND NULLIF(latitude,'')::float BETWEEN ${minLat} AND ${maxLat} ` +
+          `AND NULLIF(longitude,'')::float BETWEEN ${minLng} AND ${maxLng} ` +
+          `AND (${kwClause}) ` +
+          `LIMIT 500`;
+        const url = `https://data.boston.gov/api/3/action/datastore_search_sql?sql=${encodeURIComponent(sql)}`;
+        return fetch(url, { headers: { 'Content-Type': 'application/json' } })
+          .then(r => r.ok ? r.json() : null)
+          .then(json => (json && json.success && json.result) ? json.result.records || [] : [])
+          .catch(err => {
+            console.warn(`[BostonAPI] fetch311Hazards SQL failed for ${rid}:`, err.message);
+            return [];
+          });
+      });
 
-      const yearArrays = await Promise.all(yearFetches);
-      const allRecords = yearArrays.flat();
-
-      // Filter by keyword in case_title or type, then by distance
-      const hazardKeywordsLower = HAZARD_KEYWORDS.map((k) => k.toLowerCase());
+      const allRecords = (await Promise.all(yearFetches)).flat();
 
       return allRecords
-        .filter((r) => {
-          const title = (r.case_title || '').toLowerCase();
-          const type  = (r.type        || '').toLowerCase();
-          return hazardKeywordsLower.some((kw) => title.includes(kw) || type.includes(kw));
-        })
-        .filter((r) => {
+        .filter(r => {
           const rLat = parseFloat(r.latitude);
           const rLng = parseFloat(r.longitude);
           if (isNaN(rLat) || isNaN(rLng)) return false;
           return haversineMiles(lat, lng, rLat, rLng) <= radiusMiles;
         })
-        .map((r) => ({
+        .map(r => ({
           id:           r.case_enquiry_id || r._id || '',
           title:        r.case_title      || '',
           type:         r.type            || '',
-          address:      r.location        || r.location_street_name || '',
+          address:      r.location        || '',
           lat:          parseFloat(r.latitude),
           lng:          parseFloat(r.longitude),
           opened:       r.open_dt         || '',
@@ -284,31 +297,6 @@
       console.error('[BostonAPI] fetch311Hazards failed:', err);
       return [];
     }
-  }
-
-  /**
-   * Fetch up to `limit` records from a single 311 year resource.
-   * Uses CKAN's SQL-style filters where possible, falls back to fetching
-   * a large batch and post-filtering.
-   * @param {string} resourceId
-   * @param {number} limit
-   * @returns {Promise<Object[]>}
-   */
-  async function fetch311Year(resourceId, limit) {
-    const params = new URLSearchParams({
-      resource_id: resourceId,
-      limit,
-    });
-    const url = `${CKAN_BASE}?${params}`;
-    console.log(`[BostonAPI] fetch311Year: GET ${url}`);
-
-    const response = await fetch(url, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const json = await response.json();
-    if (!json.success) throw new Error(`CKAN error: ${JSON.stringify(json.error)}`);
-    return json.result.records || [];
   }
 
   /**
