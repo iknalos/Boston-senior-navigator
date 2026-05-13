@@ -327,36 +327,33 @@
 
     if (!data) { routeSummary.textContent = 'Could not plan transit route.'; return; }
 
-    // Build combined navRouteCoords from all three segments (used for ETA distance)
-    const allNavCoords = [];
-    if (data.walkToStop)  allNavCoords.push(...data.walkToStop.geometry.coordinates);
-    if (data.originStop && data.destStop) {
-      allNavCoords.push([data.originStop.lng, data.originStop.lat]);
-      allNavCoords.push([data.destStop.lng,   data.destStop.lat]);
-    }
-    if (data.walkFromStop) allNavCoords.push(...data.walkFromStop.geometry.coordinates);
-    navRouteCoords = allNavCoords;
-
     // Determine transit segment color from first common route
     const transitColor = (data.commonRoutes && data.commonRoutes.length
       && data.commonRoutes[0].color && data.commonRoutes[0].color !== '000000')
       ? '#' + data.commonRoutes[0].color : '#1565c0';
 
-    // Draw all three map segments
-    if (map) {
-      if (data.walkToStop) BostonMap.drawRoute(data.walkToStop.geometry, '#1a5c3a', true);
-      if (data.originStop && data.destStop) {
-        BostonMap.drawRoute({
-          type: 'LineString',
-          coordinates: [
+    // Use real MBTA shape if available, otherwise straight-line fallback
+    const transitGeometry = data.transitShape || (data.originStop && data.destStop
+      ? { type: 'LineString', coordinates: [
             [data.originStop.lng, data.originStop.lat],
             [data.destStop.lng,   data.destStop.lat],
-          ],
-        }, transitColor, false);
-      }
-      if (data.walkFromStop) BostonMap.drawRoute(data.walkFromStop.geometry, '#1a5c3a', true);
+        ]}
+      : null);
+
+    // Draw all three map segments
+    if (map) {
+      if (data.walkToStop)    BostonMap.drawRoute(data.walkToStop.geometry, '#1a5c3a', true);
+      if (transitGeometry)    BostonMap.drawRoute(transitGeometry, transitColor, false);
+      if (data.walkFromStop)  BostonMap.drawRoute(data.walkFromStop.geometry, '#1a5c3a', true);
       BostonMap.fitRoutes();
     }
+
+    // Build combined navRouteCoords (all three segments joined)
+    const allNavCoords = [];
+    if (data.walkToStop)    allNavCoords.push(...data.walkToStop.geometry.coordinates);
+    if (transitGeometry)    allNavCoords.push(...transitGeometry.coordinates);
+    if (data.walkFromStop)  allNavCoords.push(...data.walkFromStop.geometry.coordinates);
+    navRouteCoords = allNavCoords;
 
     routeSteps.innerHTML = '';
 

@@ -654,28 +654,32 @@
         return a.estimatedTotal - b.estimatedTotal;
       });
 
-      // Fetch OSRM + predictions for the top 2 candidates, then pick the true minimum
+      // Fetch OSRM + predictions + route shape for the top 2 candidates
       const top = candidates.slice(0, 2);
       const detailedResults = await Promise.all(top.map(async function (c) {
-        const [walkToStop, walkFromStop, predictions] = await Promise.all([
+        const shapeRouteId = c.common.length > 0 ? c.common[0].id : null;
+        const [walkToStop, walkFromStop, predictions, transitShape] = await Promise.all([
           fetchOSRMRoute(fromLat, fromLng, c.oStop.lat, c.oStop.lng),
           fetchOSRMRoute(c.dStop.lat, c.dStop.lng, toLat, toLng),
           fetchMBTAPredictions(c.oStop.id),
+          shapeRouteId
+            ? fetchMBTARouteShape(shapeRouteId, c.oStop.lat, c.oStop.lng, c.dStop.lat, c.dStop.lng)
+            : Promise.resolve(null),
         ]);
 
         const relevantPreds = (c.common.length > 0
           ? predictions.filter(p => c.common.some(r => r.id === p.routeId))
           : predictions).slice(0, 5);
 
-        const waitMins    = relevantPreds.length > 0 ? Math.max(0, relevantPreds[0].minutesAway) : 5;
-        const walkToMins  = walkToStop   ? Math.round(walkToStop.duration  / 60) : Math.round(c.walkToMinsEst);
+        const waitMins     = relevantPreds.length > 0 ? Math.max(0, relevantPreds[0].minutesAway) : 5;
+        const walkToMins   = walkToStop   ? Math.round(walkToStop.duration  / 60) : Math.round(c.walkToMinsEst);
         const walkFromMins = walkFromStop ? Math.round(walkFromStop.duration / 60) : Math.round(c.walkFromMinsEst);
-        const bestType    = c.common.length > 0 ? c.common[0].type : 3;
-        const transitMins = Math.round(c.transitDistMiles / getTransitSpeed(bestType) * 60);
-        const totalMins   = walkToMins + waitMins + transitMins + walkFromMins;
+        const bestType     = c.common.length > 0 ? c.common[0].type : 3;
+        const transitMins  = Math.round(c.transitDistMiles / getTransitSpeed(bestType) * 60);
+        const totalMins    = walkToMins + waitMins + transitMins + walkFromMins;
 
         return Object.assign({}, c, {
-          walkToStop, walkFromStop,
+          walkToStop, walkFromStop, transitShape,
           predictions: relevantPreds,
           walkToMins, waitMins, transitMins, walkFromMins, totalMins,
         });
@@ -693,6 +697,7 @@
         predictions:      best.predictions,
         walkToStop:       best.walkToStop,
         walkFromStop:     best.walkFromStop,
+        transitShape:     best.transitShape,   // actual route geometry (clipped)
         walkToMins:       best.walkToMins,
         waitMins:         best.waitMins,
         transitMins:      best.transitMins,
@@ -702,6 +707,87 @@
       };
     } catch (err) {
       console.error('[BostonAPI] planTransitRoute failed:', err);
+      return null;
+    }
+  }
+
+  // ─── MBTA Shape / Polyline helpers ───────────────────────────────────────────
+
+  /**
+   * Decode a Google Encoded Polyline string to [[lat, lng], ...] pairs.
+   */
+  function _decodePolyline(encoded) {
+    var pts = [], i = 0, lat = 0, lng = 0;
+    while (i < encoded.length) {
+      var b, shift = 0, result = 0;
+      do { b = encoded.charCodeAt(i++) - 63; result |= (b & 31) << shift; shift += 5; } while (b >= 32);
+      lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+      shift = 0; result = 0;
+      do { b = encoded.charCodeAt(i++) - 63; result |= (b & 31) << shift; shift += 5; } while (b >= 32);
+      lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+      pts.push([lat / 1e5, lng / 1e5]);
+    }
+    return pts;
+  }
+
+  /**
+   * Fetch the MBTA route shape for a given route and clip it to the
+   * portion between fromStop and toStop.
+   *
+   * Picks the shape variant (direction) that best fits the from→to direction,
+   * then slices out the sub-segment closest to each stop.
+   *
+   * @param {string} routeId
+   * @param {number} fromLat  origin stop lat
+   * @param {number} fromLng  origin stop lng
+   * @param {number} toLat    destination stop lat
+   * @param {number} toLng    destination stop lng
+   * @returns {Promise<GeoJSON.LineString|null>}
+   */
+  async function fetchMBTARouteShape(routeId, fromLat, fromLng, toLat, toLng) {
+    try {
+      const res = await fetch(
+        `${MBTA_BASE}/shapes?filter[route]=${encodeURIComponent(routeId)}`,
+        { headers: { Accept: 'application/vnd.api+json' } }
+      );
+      if (!res.ok) throw new Error(`MBTA shapes HTTP ${res.status}`);
+      const json = await res.json();
+      if (!json.data || !json.data.length) return null;
+
+      var bestCoords = null;
+      var bestScore  = Infinity;
+
+      json.data.forEach(function (shape) {
+        if (!shape.attributes || !shape.attributes.polyline) return;
+        var pts = _decodePolyline(shape.attributes.polyline);
+        if (pts.length < 2) return;
+
+        // Find the index of the point closest to each stop
+        var fi = 0, fd = Infinity, ti = 0, td = Infinity;
+        pts.forEach(function (p, idx) {
+          var df = haversineMiles(fromLat, fromLng, p[0], p[1]);
+          var dt = haversineMiles(toLat,   toLng,   p[0], p[1]);
+          if (df < fd) { fd = df; fi = idx; }
+          if (dt < td) { td = dt; ti = idx; }
+        });
+
+        var score = fd + td;
+        if (score < bestScore) {
+          bestScore = score;
+          // Slice the sub-segment; normalise so fi < ti
+          var segment = (fi <= ti)
+            ? pts.slice(fi, ti + 1)
+            : pts.slice(ti, fi + 1).reverse();
+          // GeoJSON coordinates are [lng, lat]
+          bestCoords = segment.map(function (p) { return [p[1], p[0]]; });
+        }
+      });
+
+      return bestCoords && bestCoords.length >= 2
+        ? { type: 'LineString', coordinates: bestCoords }
+        : null;
+    } catch (err) {
+      console.error('[BostonAPI] fetchMBTARouteShape failed:', err);
       return null;
     }
   }
@@ -873,6 +959,7 @@
     fetchMBTANearbyStops,
     fetchMBTAPredictions,
     fetchMBTARoutesForStop,
+    fetchMBTARouteShape,
     planTransitRoute,
     fetchMBTAVehicles,
 
