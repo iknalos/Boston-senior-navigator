@@ -327,9 +327,35 @@
 
     if (!data) { routeSummary.textContent = 'Could not plan transit route.'; return; }
 
-    // For navigation tracking, use the walkToStop route coords
-    if (data.walkToStop) {
-      navRouteCoords = data.walkToStop.geometry.coordinates;
+    // Build combined navRouteCoords from all three segments (used for ETA distance)
+    const allNavCoords = [];
+    if (data.walkToStop)  allNavCoords.push(...data.walkToStop.geometry.coordinates);
+    if (data.originStop && data.destStop) {
+      allNavCoords.push([data.originStop.lng, data.originStop.lat]);
+      allNavCoords.push([data.destStop.lng,   data.destStop.lat]);
+    }
+    if (data.walkFromStop) allNavCoords.push(...data.walkFromStop.geometry.coordinates);
+    navRouteCoords = allNavCoords;
+
+    // Determine transit segment color from first common route
+    const transitColor = (data.commonRoutes && data.commonRoutes.length
+      && data.commonRoutes[0].color && data.commonRoutes[0].color !== '000000')
+      ? '#' + data.commonRoutes[0].color : '#1565c0';
+
+    // Draw all three map segments
+    if (map) {
+      if (data.walkToStop) BostonMap.drawRoute(data.walkToStop.geometry, '#1a5c3a', true);
+      if (data.originStop && data.destStop) {
+        BostonMap.drawRoute({
+          type: 'LineString',
+          coordinates: [
+            [data.originStop.lng, data.originStop.lat],
+            [data.destStop.lng,   data.destStop.lat],
+          ],
+        }, transitColor, false);
+      }
+      if (data.walkFromStop) BostonMap.drawRoute(data.walkFromStop.geometry, '#1a5c3a', true);
+      BostonMap.fitRoutes();
     }
 
     routeSteps.innerHTML = '';
@@ -342,7 +368,6 @@
         '<div class="transit-seg__header">🚶 Walk to <strong>' + _esc(data.originStop.name) + '</strong></div>' +
         '<div class="transit-seg__detail">' + formatMeters(data.walkToStop.distance) +
         ' &nbsp;·&nbsp; ~' + formatSeconds(data.walkToStop.duration) + '</div>';
-      if (map) BostonMap.drawRoute(data.walkToStop.geometry, '#1a5c3a', true);
     } else {
       walkSeg.innerHTML = '<div class="transit-seg__header">📍 <strong>' + _esc(data.originStop.name) + '</strong></div>';
     }
@@ -384,10 +409,7 @@
         '<div class="transit-seg__detail">' + formatMeters(data.walkFromStop.distance) +
         ' &nbsp;·&nbsp; ~' + formatSeconds(data.walkFromStop.duration) + ' to destination</div>';
       routeSteps.appendChild(walkSeg2);
-      if (map) BostonMap.drawRoute(data.walkFromStop.geometry, '#1a5c3a', true);
     }
-
-    if (map) BostonMap.fitRoutes();
 
     // Build time breakdown bar
     const wt  = data.walkToMins   || 0;
@@ -458,11 +480,14 @@
     navStartBtn.removeAttribute('hidden');
     if (map) {
       BostonMap.clearLivePosition();
-      // Restore full route display (no progress split)
-      if (navRouteCoords.length > 1) {
+      if (navMode === 'transit') {
+        // Transit segments are still drawn (we never wiped them); just re-fit
+        BostonMap.fitRoutes();
+      } else if (navRouteCoords.length > 1) {
+        // Restore full single-line route for walk/car
         BostonMap.clearRoute();
         BostonMap.drawRoute({ type: 'LineString', coordinates: navRouteCoords },
-          navMode === 'car' ? '#1565c0' : '#1a5c3a', navMode === 'transit');
+          navMode === 'car' ? '#1565c0' : '#1a5c3a', false);
         BostonMap.fitRoutes();
       }
     }
@@ -477,8 +502,8 @@
       BostonMap.panToLive(lat, lng);
     }
 
-    // Update route progress split
-    if (navRouteCoords.length > 1 && map) {
+    // Update route progress split (skip for transit — route is multi-segment, live dot suffices)
+    if (navMode !== 'transit' && navRouteCoords.length > 1 && map) {
       const idx = closestRouteIndex(navRouteCoords, lat, lng);
       BostonMap.updateRouteProgress(navRouteCoords, idx);
     }
