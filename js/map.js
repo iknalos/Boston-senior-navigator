@@ -52,9 +52,13 @@
   // ---------------------------------------------------------------------------
   // Helper: create a DivIcon with an emoji and an accessible label
   // ---------------------------------------------------------------------------
-  function _makeEmojiIcon(emoji, size, extraClass) {
+  // anchorY: fraction of icon height where the pin point is (0=top, 1=bottom).
+  // Default 0.5 (center) for resource markers; pass 1 for pin-style home marker.
+  function _makeEmojiIcon(emoji, size, extraClass, anchorYFraction) {
     size = size || 36;
     extraClass = extraClass || '';
+    var ay = typeof anchorYFraction === 'number' ? anchorYFraction : 0.5;
+    var anchorY = Math.round(size * ay);
     return L.divIcon({
       html:
         '<span role="img" aria-label="' +
@@ -65,9 +69,9 @@
         emoji +
         '</span>',
       className: 'bfm-emoji-icon ' + extraClass,
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
-      popupAnchor: [0, -(size / 2 + 4)],
+      iconSize:    [size, size],
+      iconAnchor:  [size / 2, anchorY],
+      popupAnchor: [0, -(anchorY + 4)],
     });
   }
 
@@ -392,18 +396,18 @@
       _userCircle = null;
     }
 
-    var icon = _makeEmojiIcon('🏠', 36, 'bfm-home-icon');
+    // 42 px, anchored at the BOTTOM so the house base sits on the coordinate
+    var icon = _makeEmojiIcon('🏠', 42, 'bfm-home-icon', 1.0);
 
     var popupHtml = _buildPopup(
-      'Your Searched Address',
+      'Your Location',
       address || null,
-      'This is the address you searched. The circle shows a 0.5-mile walking radius.'
+      'The circle shows a 0.5-mile walking radius.'
     );
 
-    L.marker([lat, lng], { icon: icon, alt: 'Your searched address', zIndexOffset: 1000 })
+    L.marker([lat, lng], { icon: icon, alt: 'Your location', zIndexOffset: 1000 })
       .bindPopup(popupHtml, { maxWidth: 300 })
-      .addTo(_layers.userLocation)
-      .openPopup();
+      .addTo(_layers.userLocation);
 
     // 0.5 mile = 804.672 metres
     _userCircle = L.circle([lat, lng], {
