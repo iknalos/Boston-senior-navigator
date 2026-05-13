@@ -32,6 +32,7 @@
     requests311_2025:    '9d7c2214-4709-478a-a2e8-fb2020a5bb94',
     requests311_2024:    'dff4d804-5031-443a-8409-8344efd0e5c8',
     socialVulnerability: '3d506197-74e9-4032-a455-fe231ea9daf1',
+    samAddresses:        '6d6cfc99-6f26-4974-bbb3-17b5dbad49a9',
   };
 
   // 311 type/case_title keywords relevant to elderly fall & navigation hazards
@@ -422,6 +423,42 @@
     }
   }
 
+  /**
+   * Search Boston SAM addresses as the user types.
+   * Returns up to 8 matches with display label and lat/lng.
+   * Only returns real Boston addresses — no other cities.
+   *
+   * @param {string} query — partial address string
+   * @returns {Promise<Array<{label, lat, lng, neighborhood}>>}
+   */
+  async function searchBostonAddresses(query) {
+    if (!query || query.length < 3) return [];
+    try {
+      const params = new URLSearchParams({
+        resource_id: RESOURCE_IDS.samAddresses,
+        q:     query,
+        limit: 8,
+        fields: 'FULL_ADDRESS,MAILING_NEIGHBORHOOD,ZIP_CODE,POINT_X,POINT_Y',
+      });
+      const url = `${CKAN_BASE}?${params}`;
+      const response = await fetch(url);
+      if (!response.ok) return [];
+      const json = await response.json();
+      if (!json.success) return [];
+      return json.result.records
+        .filter(r => r.POINT_X && r.POINT_Y)
+        .map(r => ({
+          label:        r.FULL_ADDRESS + ', ' + r.MAILING_NEIGHBORHOOD + ', Boston, MA ' + r.ZIP_CODE,
+          lat:          parseFloat(r.POINT_Y),
+          lng:          parseFloat(r.POINT_X),
+          neighborhood: r.MAILING_NEIGHBORHOOD || '',
+        }));
+    } catch (err) {
+      console.error('[BostonAPI] searchBostonAddresses failed:', err);
+      return [];
+    }
+  }
+
   // ─── Export ───────────────────────────────────────────────────────────────────
 
   const BostonAPI = {
@@ -430,6 +467,7 @@
     fetch311Hazards,
     fetchSocialVulnerability,
     geocodeAddress,
+    searchBostonAddresses,
 
     // Expose constants for callers that want to do their own queries
     CKAN_BASE,

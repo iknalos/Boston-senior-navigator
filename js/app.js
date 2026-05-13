@@ -54,7 +54,7 @@
     return scores[Math.floor(scores.length / 2)];
   }
 
-  // ── Address autocomplete ──────────────────────────────────────
+  // ── Address autocomplete (Boston SAM dataset) ─────────────────
   function hideSuggestions() {
     suggestionsList.setAttribute('hidden', '');
     suggestionsList.innerHTML = '';
@@ -65,37 +65,28 @@
     if (!results.length) { hideSuggestions(); return; }
     results.forEach(function (r) {
       const li = document.createElement('li');
-      li.textContent = r.display_name;
-      li.dataset.lat = r.lat;
-      li.dataset.lng = r.lon;
+      li.textContent = r.label;
       li.addEventListener('mousedown', function (e) {
         e.preventDefault();
-        searchInput.value = r.display_name;
-        selectedSuggestion = { lat: parseFloat(r.lat), lng: parseFloat(r.lon) };
+        searchInput.value = r.label;
+        selectedSuggestion = { lat: r.lat, lng: r.lng };
         hideSuggestions();
-        runSearch(selectedSuggestion, r.display_name);
+        runSearch(selectedSuggestion, r.label);
       });
       suggestionsList.appendChild(li);
     });
     suggestionsList.removeAttribute('hidden');
   }
 
-  function fetchSuggestions(query) {
-    if (query.length < 4) { hideSuggestions(); return; }
-    const q = /boston/i.test(query) ? query : query + ', Boston, MA';
-    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=us&q=' + encodeURIComponent(q);
-    fetch(url, { headers: { 'Accept-Language': 'en' } })
-      .then(r => r.json())
-      .then(showSuggestions)
-      .catch(function () { hideSuggestions(); });
-  }
-
   searchInput.addEventListener('input', function () {
     selectedSuggestion = null;
     clearTimeout(autocompleteTimer);
+    const query = searchInput.value.trim();
+    if (query.length < 2) { hideSuggestions(); return; }
+    // Show suggestions quickly — 200ms debounce
     autocompleteTimer = setTimeout(function () {
-      fetchSuggestions(searchInput.value.trim());
-    }, 300);
+      BostonAPI.searchBostonAddresses(query).then(showSuggestions);
+    }, 200);
   });
 
   searchInput.addEventListener('blur', function () {
