@@ -48,21 +48,26 @@
   <section class="search-section" aria-label="Address search">
     <div class="search-inner">
       <label for="address-input" class="search-label">Enter a Boston address:</label>
-      <div class="search-row">
-        <input
-          id="address-input"
-          class="search-input"
-          type="text"
-          placeholder="e.g. 1 City Hall Square, Boston, MA"
-          autocomplete="street-address"
-          aria-required="true"
-          aria-describedby="search-hint"
-        />
+      <div class="search-row" style="position:relative;">
+        <div style="flex:1;position:relative;">
+          <input
+            id="address-input"
+            class="search-input"
+            type="text"
+            placeholder="e.g. 1 City Hall Square, Boston, MA"
+            autocomplete="off"
+            aria-required="true"
+            aria-describedby="search-hint"
+            aria-autocomplete="list"
+            aria-controls="address-suggestions"
+          />
+          <ul id="address-suggestions" class="suggestions-list" hidden></ul>
+        </div>
         <button id="search-btn" class="search-btn" type="button" aria-label="Find Resources near entered address">
           Find Resources
         </button>
       </div>
-      <p id="search-hint" class="search-hint">Type a full Boston address and press &ldquo;Find Resources&rdquo;</p>
+      <p id="search-hint" class="search-hint">Start typing a Boston address — suggestions will appear</p>
       <p id="search-error" class="search-error" role="alert" aria-live="assertive" hidden></p>
     </div>
   </section>
@@ -150,17 +155,13 @@
     </p>
   </footer>
 
-  <!-- Leaflet JS -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN2GqEQ="
-    crossorigin=""
-  ></script>
+  <!-- Leaflet JS (no integrity check to avoid SRI blocking) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- App scripts (order matters) -->
-  <script src="js/api.js?v=6"></script>
-  <script src="js/map.js?v=6"></script>
-  <script src="js/app.js?v=6"></script>
+  <script src="js/api.js?v=7"></script>
+  <script src="js/map.js?v=7"></script>
+  <script src="js/app.js?v=7"></script>
 
 </body>
 </html>
