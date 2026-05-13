@@ -336,6 +336,19 @@ a:hover {
   outline:    none;
 }
 
+.nearest-list li.nearest-item--note {
+  cursor:      default;
+  font-size:   11px;
+  color:       #666;
+  font-style:  italic;
+  white-space: normal;
+  line-height: 1.4;
+}
+.nearest-list li.nearest-item--note:hover,
+.nearest-list li.nearest-item--note:focus-visible {
+  background: transparent;
+}
+
 .nearest-list .place-name {
   overflow:     hidden;
   text-overflow: ellipsis;
