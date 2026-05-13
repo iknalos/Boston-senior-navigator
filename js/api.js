@@ -975,13 +975,17 @@
    * @returns {Promise<Array<{id, lat, lng, bearing, status, label,
    *   routeId, routeName, routeLongName, routeType, routeColor, routeTextColor}>>}
    */
-  async function fetchMBTAVehicles() {
+  async function fetchMBTAVehicles(routeId) {
     try {
       const params = new URLSearchParams({
-        'filter[route_type]': '0,1,3',
         'include': 'route',
         'page[limit]': '500',
       });
+      if (routeId) {
+        params.set('filter[route]', routeId);
+      } else {
+        params.set('filter[route_type]', '0,1,3');
+      }
       const res = await fetch(`${MBTA_BASE}/vehicles?${params}`, {
         headers: { Accept: 'application/vnd.api+json' },
       });
