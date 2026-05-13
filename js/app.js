@@ -784,7 +784,7 @@
 
       currentLocation = location;
       const nearbyHospitals = filterByRadius(allHospitals, location.lat, location.lng, 3);
-      const nearbyParks     = filterByRadius(allParks,     location.lat, location.lng, 1);
+      const nearbyParks     = filterByRadius(allParks,     location.lat, location.lng, 1.5);
 
       if (map) {
         BostonMap.plotHospitals(nearbyHospitals);
@@ -801,7 +801,15 @@
 
       renderNearestList(hospList,   nearbyHospitals, 'name', location.lat, location.lng, 8);
       renderNearestList(parksList,  nearbyParks,     'name', location.lat, location.lng, 8);
+      if (!nearbyParks.length) {
+        parksList.innerHTML = '<li class="nearest-item nearest-item--note">BPRD accessible parks data covers Boston proper. Nearby cities (Cambridge, Somerville) have separate park systems.</li>';
+        parksList.removeAttribute('hidden');
+      }
       renderHazardList(hazardsList, hazards, location.lat, location.lng);
+      if (!hazards.length) {
+        hazardsList.innerHTML = '<li class="nearest-item nearest-item--note">Boston 311 data covers Boston proper. Cambridge, Somerville &amp; other cities have separate systems.</li>';
+        hazardsList.removeAttribute('hidden');
+      }
 
       _startTransitRefresh();
 
