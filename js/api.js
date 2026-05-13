@@ -242,7 +242,6 @@
       const resources = [
         RESOURCE_IDS.requests311_2026,
         RESOURCE_IDS.requests311_2025,
-        RESOURCE_IDS.requests311_2024,
       ];
 
       // Run two strategies in parallel per year and combine:
@@ -265,6 +264,7 @@
 
       const hazardKeywordsLower = HAZARD_KEYWORDS.map(k => k.toLowerCase());
       return allRecords
+        .filter(r => (r.case_status || '').toLowerCase() === 'open')
         .filter(r => {
           const title = (r.case_title || '').toLowerCase();
           const type  = (r.type       || '').toLowerCase();
@@ -305,6 +305,7 @@
         `WHERE latitude IS NOT NULL AND latitude!='' ` +
         `AND latitude::float>=${minLat} AND latitude::float<=${maxLat} ` +
         `AND longitude::float>=${minLng} AND longitude::float<=${maxLng} ` +
+        `AND UPPER(case_status)='OPEN' ` +
         `AND (${kwClause}) LIMIT 500`;
       const url = `https://data.boston.gov/api/3/action/datastore_search_sql?sql=${encodeURIComponent(sql)}`;
       const res = await fetch(url);
@@ -473,12 +474,23 @@
       if (!json.success) return [];
       return json.result.records
         .filter(r => r.POINT_X && r.POINT_Y)
-        .map(r => ({
-          label:        r.FULL_ADDRESS + ', ' + r.MAILING_NEIGHBORHOOD + ', Boston, MA ' + r.ZIP_CODE,
-          lat:          parseFloat(r.POINT_Y),
-          lng:          parseFloat(r.POINT_X),
-          neighborhood: r.MAILING_NEIGHBORHOOD || '',
-        }));
+        .map(r => {
+          const hood = (r.MAILING_NEIGHBORHOOD || '').trim();
+          // Clean range addresses: "100-102 Tremont St" → "100 Tremont St"
+          let street = (r.FULL_ADDRESS || '').trim().replace(/^(\d+)-\d+(\s)/, '$1$2');
+          // Strip trailing unit numbers: "100 Tremont St 3" → "100 Tremont St"
+          street = street.replace(/\s+\d+$/, '');
+          // Avoid "Boston, Boston" when neighborhood IS Boston
+          const cityPart = hood.toLowerCase() === 'boston'
+            ? 'Boston, MA ' + (r.ZIP_CODE || '')
+            : hood + ', Boston, MA ' + (r.ZIP_CODE || '');
+          return {
+            label:        street + ', ' + cityPart,
+            lat:          parseFloat(r.POINT_Y),
+            lng:          parseFloat(r.POINT_X),
+            neighborhood: hood,
+          };
+        });
     } catch (err) {
       console.error('[BostonAPI] searchBostonAddresses failed:', err);
       return [];
