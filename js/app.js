@@ -1,14 +1,14 @@
 (function () {
   'use strict';
 
-  const searchForm = document.getElementById('search-form');
+  const searchBtn = document.getElementById('search-btn');
   const searchInput = document.getElementById('address-input');
   const loadingOverlay = document.getElementById('loading-overlay');
-  const placeholderState = document.getElementById('placeholder-state');
+  const placeholderState = document.getElementById('results-placeholder');
   const resultsPanel = document.getElementById('results-panel');
-  const hospitalCount = document.getElementById('hospital-count');
-  const parkCount = document.getElementById('park-count');
-  const hazardCount = document.getElementById('hazard-count');
+  const hospitalCount = document.getElementById('hosp-count');
+  const parkCount = document.getElementById('parks-count');
+  const hazardCount = document.getElementById('hazards-count');
   const vulnBadge = document.getElementById('vuln-badge');
 
   let map = null;
@@ -68,7 +68,7 @@
   }
 
   async function handleSearch(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const address = searchInput.value.trim();
     if (!address) return;
 
@@ -124,7 +124,7 @@
 
   function init() {
     map = BostonMap.initMap('map');
-    searchForm.addEventListener('submit', handleSearch);
+    searchBtn.addEventListener('click', handleSearch);
     searchInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') handleSearch(e);
     });
