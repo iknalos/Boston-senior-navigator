@@ -15,7 +15,7 @@
   />
 
   <!-- App styles -->
-  <link rel="stylesheet" href="css/style.css?v=8" />
+  <link rel="stylesheet" href="css/style.css?v=9" />
 </head>
 <body>
 
@@ -139,6 +139,40 @@
         </div>
 
       </div><!-- /#results-panel -->
+
+      <!-- Directions panel — shown when a resource list item is clicked -->
+      <div id="directions-panel" class="directions-panel" hidden>
+
+        <button id="directions-back-btn" class="directions-back-btn" type="button">
+          &#8592; Back to Results
+        </button>
+
+        <div class="directions-dest">
+          <p id="directions-name" class="directions-dest__name"></p>
+          <p id="directions-addr" class="directions-dest__addr"></p>
+          <p id="directions-time" class="directions-dest__time"></p>
+        </div>
+
+        <div class="directions-links">
+          <a id="directions-walk-link" class="directions-link directions-link--walk"
+             href="#" target="_blank" rel="noopener noreferrer">
+            &#x1F6B6; Walking Directions
+          </a>
+          <a id="directions-transit-link" class="directions-link directions-link--transit"
+             href="#" target="_blank" rel="noopener noreferrer">
+            &#x1F68C; Bus / Train Directions
+          </a>
+        </div>
+
+        <div class="mbta-section">
+          <h3 class="mbta-section__heading">&#128652; Nearby MBTA Stops</h3>
+          <div id="mbta-stops-list" class="mbta-stops-list">
+            <p class="mbta-loading">Loading transit info&hellip;</p>
+          </div>
+        </div>
+
+      </div><!-- /#directions-panel -->
+
     </aside><!-- /.sidebar -->
 
     <!-- MAP -->
@@ -162,15 +196,15 @@
       &mdash; City of Boston Open Data
     </p>
   </footer>
-  <div class="site-version" aria-label="Version 12">v12</div>
+  <div class="site-version" aria-label="Version 13">v13</div>
 
   <!-- Leaflet JS (no integrity check to avoid SRI blocking) -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- App scripts (order matters) -->
-  <script src="js/api.js?v=12"></script>
-  <script src="js/map.js?v=12"></script>
-  <script src="js/app.js?v=12"></script>
+  <script src="js/api.js?v=13"></script>
+  <script src="js/map.js?v=13"></script>
+  <script src="js/app.js?v=13"></script>
 
 </body>
 </html>

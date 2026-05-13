@@ -28,6 +28,9 @@
   // The user-location circle (kept separately so clearAll can remove it)
   var _userCircle = null;
 
+  // Dashed hover polyline from home to a hovered resource
+  var _hoverPolyline = null;
+
   // ---------------------------------------------------------------------------
   // Helper: create a DivIcon with an emoji and an accessible label
   // ---------------------------------------------------------------------------
@@ -374,6 +377,44 @@
   }
 
   /**
+   * drawHoverLine(destLat, destLng)
+   * Draws a dashed blue polyline from the user's home marker to the destination.
+   * Requires setUserLocation() to have been called first.
+   */
+  function drawHoverLine(destLat, destLng) {
+    if (!_map) return;
+    clearHoverLine();
+    var origin = _getUserLatLng();
+    if (!origin) return;
+    _hoverPolyline = L.polyline(
+      [origin, [destLat, destLng]],
+      { color: '#1a73e8', weight: 3, opacity: 0.8, dashArray: '8 6' }
+    ).addTo(_map);
+  }
+
+  /**
+   * clearHoverLine()
+   * Removes the dashed hover polyline if present.
+   */
+  function clearHoverLine() {
+    if (_hoverPolyline && _map) {
+      _map.removeLayer(_hoverPolyline);
+      _hoverPolyline = null;
+    }
+  }
+
+  function _getUserLatLng() {
+    if (!_layers.userLocation) return null;
+    var latlng = null;
+    _layers.userLocation.eachLayer(function (layer) {
+      if (layer instanceof L.Marker) {
+        latlng = [layer.getLatLng().lat, layer.getLatLng().lng];
+      }
+    });
+    return latlng;
+  }
+
+  /**
    * clearAll()
    * Removes all markers and the user-location circle from the map.
    * The base tile layer is unaffected.
@@ -389,6 +430,7 @@
       _map.removeLayer(_userCircle);
       _userCircle = null;
     }
+    clearHoverLine();
   }
 
   /**
@@ -414,6 +456,8 @@
     setUserLocation: setUserLocation,
     clearAll: clearAll,
     flyToLocation: flyToLocation,
+    drawHoverLine: drawHoverLine,
+    clearHoverLine: clearHoverLine,
   };
 
 }(window));

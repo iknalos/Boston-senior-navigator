@@ -467,6 +467,98 @@
     }
   }
 
+  // ─── MBTA Live Data ──────────────────────────────────────────────────────────
+
+  const MBTA_BASE = 'https://api-v3.mbta.com';
+
+  /**
+   * Fetch MBTA stops within ~0.5 miles of a lat/lng point.
+   * The MBTA V3 API filter[radius] is in degrees; 0.0072° ≈ 0.5 mi.
+   *
+   * @param {number} lat
+   * @param {number} lng
+   * @returns {Promise<Array<{id, name, lat, lng, distance}>>}
+   */
+  async function fetchMBTANearbyStops(lat, lng) {
+    try {
+      const params = new URLSearchParams({
+        'filter[latitude]':  lat,
+        'filter[longitude]': lng,
+        'filter[radius]':    '0.0072',
+      });
+      const res = await fetch(`${MBTA_BASE}/stops?${params}`, {
+        headers: { Accept: 'application/vnd.api+json' },
+      });
+      if (!res.ok) throw new Error(`MBTA stops HTTP ${res.status}`);
+      const json = await res.json();
+      return (json.data || [])
+        .map(s => ({
+          id:       s.id,
+          name:     (s.attributes && s.attributes.name) || s.id,
+          lat:      s.attributes && s.attributes.latitude,
+          lng:      s.attributes && s.attributes.longitude,
+          distance: haversineMiles(lat, lng,
+            s.attributes && s.attributes.latitude,
+            s.attributes && s.attributes.longitude),
+        }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 5);
+    } catch (err) {
+      console.error('[BostonAPI] fetchMBTANearbyStops failed:', err);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch next predicted departures for a single MBTA stop.
+   *
+   * @param {string} stopId
+   * @returns {Promise<Array<{routeName, routeId, departureTime, minutesAway}>>}
+   */
+  async function fetchMBTAPredictions(stopId) {
+    try {
+      const params = new URLSearchParams({
+        'filter[stop]': stopId,
+        'include':      'route,trip',
+        'sort':         'departure_time',
+        'page[limit]':  '5',
+      });
+      const res = await fetch(`${MBTA_BASE}/predictions?${params}`, {
+        headers: { Accept: 'application/vnd.api+json' },
+      });
+      if (!res.ok) throw new Error(`MBTA predictions HTTP ${res.status}`);
+      const json = await res.json();
+
+      const routeMap = {};
+      (json.included || []).forEach(inc => {
+        if (inc.type === 'route') {
+          routeMap[inc.id] = (inc.attributes.short_name) || (inc.attributes.long_name) || inc.id;
+        }
+      });
+
+      const now = Date.now();
+      return (json.data || [])
+        .filter(p => p.attributes && (p.attributes.departure_time || p.attributes.arrival_time))
+        .map(p => {
+          const raw  = p.attributes.departure_time || p.attributes.arrival_time;
+          const dt   = new Date(raw);
+          const mins = Math.round((dt.getTime() - now) / 60000);
+          const rid  = p.relationships.route && p.relationships.route.data && p.relationships.route.data.id;
+          return {
+            routeName:     rid ? (routeMap[rid] || rid) : '?',
+            routeId:       rid || '',
+            departureTime: dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            minutesAway:   mins,
+          };
+        })
+        .filter(p => p.minutesAway >= 0)
+        .slice(0, 5);
+    } catch (err) {
+      console.error('[BostonAPI] fetchMBTAPredictions failed:', err);
+      return [];
+    }
+  }
+
   // ─── Export ───────────────────────────────────────────────────────────────────
 
   const BostonAPI = {
@@ -476,6 +568,8 @@
     fetchSocialVulnerability,
     geocodeAddress,
     searchBostonAddresses,
+    fetchMBTANearbyStops,
+    fetchMBTAPredictions,
 
     // Expose constants for callers that want to do their own queries
     CKAN_BASE,

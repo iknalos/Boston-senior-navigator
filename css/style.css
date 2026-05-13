@@ -298,15 +298,23 @@ a:hover {
 .locate-btn:active { transform: translateY(1px); }
 .locate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* Nearest items list inside result cards */
+/* Nearest items list inside result cards — scrollable, up to 8 items */
 .nearest-list {
   list-style: none;
   margin-top: var(--space-xs);
   padding:    0;
   display:    flex;
   flex-direction: column;
-  gap:        3px;
+  gap:        0;
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-navy) var(--color-light-gray);
 }
+
+.nearest-list::-webkit-scrollbar        { width: 5px; }
+.nearest-list::-webkit-scrollbar-track  { background: var(--color-light-gray); border-radius: 3px; }
+.nearest-list::-webkit-scrollbar-thumb  { background: var(--color-navy); border-radius: 3px; }
 
 .nearest-list li {
   display:     flex;
@@ -315,8 +323,17 @@ a:hover {
   font-size:   13px;
   color:       var(--color-dark-text);
   border-top:  1px solid var(--color-light-gray);
-  padding-top: 3px;
+  padding:     4px var(--space-xs);
   gap:         var(--space-sm);
+  cursor:      pointer;
+  border-radius: var(--radius-sm);
+  transition:  background 0.12s;
+}
+
+.nearest-list li:hover,
+.nearest-list li:focus-visible {
+  background: var(--color-amber-light);
+  outline:    none;
 }
 
 .nearest-list .place-name {
@@ -818,6 +835,172 @@ a:hover {
   .search-inner {
     max-width: 1100px;
   }
+}
+
+/* ------------------------------------------------------------
+   13. Directions Panel
+   ------------------------------------------------------------ */
+.directions-panel {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-sm);
+  padding:        var(--space-xs) 0;
+  overflow-y:     auto;
+  height:         100%;
+}
+
+.directions-back-btn {
+  font-family:   var(--font-body);
+  font-size:     var(--font-size-sm);
+  font-weight:   700;
+  color:         var(--color-navy);
+  background:    transparent;
+  border:        2px solid var(--color-navy);
+  border-radius: var(--radius-md);
+  padding:       var(--space-xs) var(--space-md);
+  min-height:    40px;
+  cursor:        pointer;
+  align-self:    flex-start;
+}
+
+.directions-back-btn:hover {
+  background: var(--color-navy);
+  color:      var(--color-white);
+}
+
+.directions-dest {
+  background:    var(--color-off-white);
+  border:        2px solid var(--color-light-gray);
+  border-left:   5px solid var(--color-navy);
+  border-radius: var(--radius-md);
+  padding:       var(--space-sm) var(--space-md);
+}
+
+.directions-dest__name {
+  font-size:   15px;
+  font-weight: 700;
+  color:       var(--color-dark-text);
+}
+
+.directions-dest__addr {
+  font-size:  13px;
+  color:      var(--color-mid-gray);
+  margin-top: 2px;
+}
+
+.directions-dest__time {
+  font-size:   13px;
+  font-weight: 700;
+  color:       var(--color-navy);
+  margin-top:  var(--space-xs);
+}
+
+.directions-links {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-xs);
+}
+
+.directions-link {
+  display:       flex;
+  align-items:   center;
+  gap:           var(--space-sm);
+  font-size:     14px;
+  font-weight:   600;
+  color:         var(--color-white);
+  text-decoration: none;
+  padding:       var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  min-height:    44px;
+}
+
+.directions-link--walk    { background: #1a5c3a; }
+.directions-link--transit { background: var(--color-navy); }
+
+.directions-link--walk:hover    { background: #124029; color: var(--color-white); }
+.directions-link--transit:hover { background: var(--color-navy-dark); color: var(--color-white); }
+
+/* ------------------------------------------------------------
+   14. MBTA Live Arrivals
+   ------------------------------------------------------------ */
+.mbta-section {
+  background:    var(--color-off-white);
+  border:        2px solid var(--color-light-gray);
+  border-left:   5px solid #da291c;
+  border-radius: var(--radius-md);
+  padding:       var(--space-sm) var(--space-md);
+  flex:          1;
+  display:       flex;
+  flex-direction: column;
+  min-height:    0;
+}
+
+.mbta-section__heading {
+  font-size:     14px;
+  font-weight:   700;
+  color:         var(--color-dark-text);
+  margin-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-light-gray);
+  padding-bottom: var(--space-xs);
+  flex-shrink:   0;
+}
+
+.mbta-stops-list {
+  overflow-y: auto;
+  flex:       1;
+  scrollbar-width: thin;
+  scrollbar-color: #da291c var(--color-light-gray);
+}
+
+.mbta-stops-list::-webkit-scrollbar        { width: 5px; }
+.mbta-stops-list::-webkit-scrollbar-thumb  { background: #da291c; border-radius: 3px; }
+
+.mbta-loading,
+.mbta-no-stops {
+  font-size:  13px;
+  color:      var(--color-mid-gray);
+  font-style: italic;
+}
+
+.mbta-stop {
+  border-top:  1px solid var(--color-light-gray);
+  padding:     var(--space-xs) 0;
+}
+
+.mbta-stop__name {
+  font-size:   13px;
+  font-weight: 700;
+  color:       var(--color-dark-text);
+}
+
+.mbta-stop__dist {
+  font-size:   12px;
+  color:       var(--color-mid-gray);
+  margin-left: var(--space-xs);
+}
+
+.mbta-arrival {
+  display:    flex;
+  align-items: center;
+  gap:        var(--space-xs);
+  font-size:  12px;
+  color:      var(--color-dark-text);
+  padding-top: 2px;
+  flex-wrap:  wrap;
+}
+
+.mbta-arrival__route {
+  font-weight:   700;
+  background:    var(--color-navy);
+  color:         var(--color-white);
+  padding:       1px 6px;
+  border-radius: 3px;
+  font-size:     11px;
+  white-space:   nowrap;
+}
+
+.mbta-arrival__time {
+  color: var(--color-dark-text);
 }
 
 /* ============================================================
