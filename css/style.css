@@ -265,10 +265,72 @@ a:hover {
   outline-offset: 3px;
 }
 
-.search-hint {
+.search-hint-row {
+  display:     flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top:  var(--space-sm);
+  gap:         var(--space-md);
+  flex-wrap:   wrap;
+}
+
+.search-hint {
   font-size:   var(--font-size-sm);
   color:       var(--color-mid-gray);
+}
+
+.locate-btn {
+  font-family:  var(--font-body);
+  font-size:    var(--font-size-sm);
+  font-weight:  600;
+  padding:      var(--space-xs) var(--space-md);
+  background:   transparent;
+  color:        var(--color-navy);
+  border:       2px solid var(--color-navy);
+  border-radius: var(--radius-md);
+  cursor:       pointer;
+  white-space:  nowrap;
+  min-height:   36px;
+}
+
+.locate-btn:hover  { background: var(--color-navy); color: var(--color-white); }
+.locate-btn:active { transform: translateY(1px); }
+.locate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Nearest items list inside result cards */
+.nearest-list {
+  list-style: none;
+  margin-top: var(--space-xs);
+  padding:    0;
+  display:    flex;
+  flex-direction: column;
+  gap:        3px;
+}
+
+.nearest-list li {
+  display:     flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size:   13px;
+  color:       var(--color-dark-text);
+  border-top:  1px solid var(--color-light-gray);
+  padding-top: 3px;
+  gap:         var(--space-sm);
+}
+
+.nearest-list .place-name {
+  overflow:     hidden;
+  text-overflow: ellipsis;
+  white-space:  nowrap;
+  flex: 1;
+}
+
+.nearest-list .place-dist {
+  font-weight: 700;
+  color:       var(--color-navy);
+  white-space: nowrap;
+  font-size:   12px;
+  flex-shrink: 0;
 }
 
 /* Address autocomplete dropdown */

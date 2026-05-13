@@ -67,7 +67,12 @@
           Find Resources
         </button>
       </div>
-      <p id="search-hint" class="search-hint">Start typing a Boston address — suggestions will appear</p>
+      <div class="search-hint-row">
+        <p id="search-hint" class="search-hint">Start typing a Boston address — suggestions will appear</p>
+        <button id="locate-btn" class="locate-btn" type="button" aria-label="Use my current location">
+          &#128205; Use My Location
+        </button>
+      </div>
       <p id="search-error" class="search-error" role="alert" aria-live="assertive" hidden></p>
     </div>
   </section>
@@ -92,8 +97,9 @@
             <h3 class="result-card__heading" id="hosp-heading">Hospitals</h3>
             <p class="result-card__count">
               <span id="hosp-count" class="count-number">—</span>
-              <span class="count-label"> found nearby</span>
+              <span class="count-label"> within 2 mi</span>
             </p>
+            <ul id="hosp-list" class="nearest-list" hidden></ul>
           </div>
         </div>
 
@@ -104,8 +110,9 @@
             <h3 class="result-card__heading" id="parks-heading">Accessible Parks</h3>
             <p class="result-card__count">
               <span id="parks-count" class="count-number">—</span>
-              <span class="count-label"> found nearby</span>
+              <span class="count-label"> within 1 mi</span>
             </p>
+            <ul id="parks-list" class="nearest-list" hidden></ul>
           </div>
         </div>
 
@@ -118,6 +125,7 @@
               <span id="hazards-count" class="count-number">—</span>
               <span class="count-label"> complaints nearby</span>
             </p>
+            <ul id="hazards-list" class="nearest-list" hidden></ul>
           </div>
         </div>
 
@@ -159,9 +167,9 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- App scripts (order matters) -->
-  <script src="js/api.js?v=8"></script>
-  <script src="js/map.js?v=8"></script>
-  <script src="js/app.js?v=8"></script>
+  <script src="js/api.js?v=9"></script>
+  <script src="js/map.js?v=9"></script>
+  <script src="js/app.js?v=9"></script>
 
 </body>
 </html>

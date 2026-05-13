@@ -1,8 +1,9 @@
 (function () {
   'use strict';
 
-  const searchBtn     = document.getElementById('search-btn');
-  const searchInput   = document.getElementById('address-input');
+  const searchBtn      = document.getElementById('search-btn');
+  const locateBtn      = document.getElementById('locate-btn');
+  const searchInput    = document.getElementById('address-input');
   const loadingOverlay = document.getElementById('loading-overlay');
   const resultsAddress = document.getElementById('results-address');
   const hospitalCount  = document.getElementById('hosp-count');
@@ -10,6 +11,9 @@
   const hazardCount    = document.getElementById('hazards-count');
   const vulnBadge      = document.getElementById('vuln-badge');
   const suggestionsList = document.getElementById('address-suggestions');
+  const hospList       = document.getElementById('hosp-list');
+  const parksList      = document.getElementById('parks-list');
+  const hazardsList    = document.getElementById('hazards-list');
 
   let map = null;
   let allHospitals = [];
@@ -93,6 +97,69 @@
     setTimeout(hideSuggestions, 150);
   });
 
+  // ── Distance list renderer ────────────────────────────────────
+  function renderNearestList(ulEl, items, nameProp, lat, lng, maxItems) {
+    ulEl.innerHTML = '';
+    if (!items.length) { ulEl.setAttribute('hidden', ''); return; }
+    const sorted = items
+      .map(item => ({ item, d: dist(lat, lng, parseFloat(item.lat), parseFloat(item.lng)) }))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, maxItems || 3);
+    sorted.forEach(function ({ item, d }) {
+      const li = document.createElement('li');
+      const miles = d < 0.1 ? (d * 5280).toFixed(0) + ' ft' : d.toFixed(1) + ' mi';
+      li.innerHTML =
+        '<span class="place-name">' + (item[nameProp] || 'Unknown') + '</span>' +
+        '<span class="place-dist">' + miles + '</span>';
+      ulEl.appendChild(li);
+    });
+    ulEl.removeAttribute('hidden');
+  }
+
+  function renderHazardList(ulEl, hazards, lat, lng) {
+    ulEl.innerHTML = '';
+    if (!hazards.length) { ulEl.setAttribute('hidden', ''); return; }
+    const sorted = hazards
+      .map(h => ({ h, d: dist(lat, lng, h.lat, h.lng) }))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 3);
+    sorted.forEach(function ({ h, d }) {
+      const li = document.createElement('li');
+      const miles = d < 0.1 ? (d * 5280).toFixed(0) + ' ft' : d.toFixed(1) + ' mi';
+      li.innerHTML =
+        '<span class="place-name">⚠️ ' + (h.title || h.type || 'Hazard') + '</span>' +
+        '<span class="place-dist">' + miles + '</span>';
+      ulEl.appendChild(li);
+    });
+    ulEl.removeAttribute('hidden');
+  }
+
+  // ── Geolocation ───────────────────────────────────────────────
+  function handleLocate() {
+    if (!navigator.geolocation) {
+      alert('Your browser does not support location access.');
+      return;
+    }
+    locateBtn.disabled = true;
+    locateBtn.textContent = '📍 Locating…';
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        locateBtn.disabled = false;
+        locateBtn.textContent = '📍 Use My Location';
+        const location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        searchInput.value = 'My Current Location';
+        selectedSuggestion = location;
+        runSearch(location, 'My Current Location');
+      },
+      function (err) {
+        locateBtn.disabled = false;
+        locateBtn.textContent = '📍 Use My Location';
+        alert('Could not access your location. Please allow location access in your browser and try again.');
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  }
+
   // ── Map initialisation (safe, deferred) ───────────────────────
   function tryInitMap() {
     if (map) return;
@@ -139,6 +206,10 @@
       setVulnerabilityBadge(medianVulnScore());
       resultsAddress.textContent = address;
 
+      renderNearestList(hospList,   nearbyHospitals, 'name', location.lat, location.lng, 3);
+      renderNearestList(parksList,  nearbyParks,     'name', location.lat, location.lng, 3);
+      renderHazardList(hazardsList, hazards, location.lat, location.lng);
+
     } catch (err) {
       console.error('Search failed:', err);
       alert('Something went wrong loading data. Please try again.');
@@ -173,6 +244,7 @@
   function init() {
     // Attach event listeners first — always, even if map init fails
     searchBtn.addEventListener('click', handleSearch);
+    locateBtn.addEventListener('click', handleLocate);
     searchInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); handleSearch(); }
     });
