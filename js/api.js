@@ -383,46 +383,52 @@
    *   Returns null if geocoding fails or no result is found.
    */
   async function geocodeAddress(address) {
-    // Only append Boston context if the address has no city/state already
-    const hasLocation = /,\s*[A-Z]{2}(\s+\d{5})?$/i.test(address) || /boston|cambridge|somerville|brookline|quincy|newton|malden/i.test(address);
-    const query = hasLocation ? address : `${address}, Boston, MA, USA`;
-    console.log(`[BostonAPI] geocodeAddress: querying Nominatim for "${query}"`);
+    console.log(`[BostonAPI] geocodeAddress: "${address}"`);
     try {
-      const params = new URLSearchParams({
-        q:              query,
-        format:         'json',
-        addressdetails: '1',
-        limit:          '1',
-        countrycodes:   'us',
-      });
-      const url = `https://nominatim.openstreetmap.org/search?${params}`;
-
-      const response = await fetch(url, {
-        headers: {
-          // Nominatim requires a descriptive User-Agent (no key needed)
-          'User-Agent': 'AgeFriendlyBoston/1.0 (solanki.har@northeastern.edu)',
-          'Accept-Language': 'en',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Nominatim HTTP ${response.status}`);
+      // Try structured query first for building-level precision
+      const parts = parseAddressParts(address);
+      if (parts) {
+        const r = await nominatimStructured(parts);
+        if (r) return r;
       }
-
-      const results = await response.json();
-      if (!results || results.length === 0) {
-        console.warn(`[BostonAPI] geocodeAddress: no result for "${query}"`);
-        return null;
-      }
-
-      return {
-        lat: parseFloat(results[0].lat),
-        lng: parseFloat(results[0].lon),
-      };
+      // Fallback: free-form query
+      const hasLocation = /,\s*[A-Z]{2}(\s+\d{5})?$/i.test(address) ||
+        /boston|cambridge|somerville|brookline|quincy|newton|malden|roxbury/i.test(address);
+      const query = hasLocation ? address : `${address}, Boston, MA`;
+      return await nominatimFreeform(query);
     } catch (err) {
       console.error('[BostonAPI] geocodeAddress failed:', err);
       return null;
     }
+  }
+
+  function parseAddressParts(address) {
+    const m = address.match(/^(\d+[A-Za-z]?(?:-\d+)?)\s+(.+?),\s*([A-Za-z\s]+),\s*([A-Z]{2})(?:\s+\d{5})?$/i);
+    if (!m) return null;
+    return { number: m[1], street: m[2].trim(), city: m[3].trim(), state: m[4].trim() };
+  }
+
+  async function nominatimStructured({ number, street, city, state }) {
+    const params = new URLSearchParams({
+      street: `${number} ${street}`, city, state, country: 'US',
+      format: 'json', addressdetails: '1', limit: '1',
+    });
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`,
+      { headers: { 'Accept-Language': 'en' } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.length) return null;
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  }
+
+  async function nominatimFreeform(query) {
+    const params = new URLSearchParams({ q: query, format: 'json', limit: '1', countrycodes: 'us' });
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`,
+      { headers: { 'Accept-Language': 'en' } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.length) return null;
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
   }
 
   /**

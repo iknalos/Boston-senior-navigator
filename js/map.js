@@ -45,8 +45,8 @@
         '</span>',
       className: 'bfm-emoji-icon ' + extraClass,
       iconSize: [size, size],
-      iconAnchor: [size / 2, size],
-      popupAnchor: [0, -(size + 4)],
+      iconAnchor: [size / 2, size / 2],
+      popupAnchor: [0, -(size / 2 + 4)],
     });
   }
 
@@ -349,7 +349,7 @@
       _userCircle = null;
     }
 
-    var icon = _makeEmojiIcon('🏠', 48, 'bfm-home-icon');
+    var icon = _makeEmojiIcon('🏠', 36, 'bfm-home-icon');
 
     var popupHtml = _buildPopup(
       'Your Searched Address',
