@@ -383,7 +383,9 @@
    *   Returns null if geocoding fails or no result is found.
    */
   async function geocodeAddress(address) {
-    const query = /boston/i.test(address) ? address : `${address}, Boston, MA, USA`;
+    // Only append Boston context if the address has no city/state already
+    const hasLocation = /,\s*[A-Z]{2}(\s+\d{5})?$/i.test(address) || /boston|cambridge|somerville|brookline|quincy|newton|malden/i.test(address);
+    const query = hasLocation ? address : `${address}, Boston, MA, USA`;
     console.log(`[BostonAPI] geocodeAddress: querying Nominatim for "${query}"`);
     try {
       const params = new URLSearchParams({

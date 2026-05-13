@@ -190,7 +190,7 @@
         allVulnerability.length? Promise.resolve() : BostonAPI.fetchSocialVulnerability().then(v => { allVulnerability = v; }),
       ]);
 
-      const nearbyHospitals = filterByRadius(allHospitals, location.lat, location.lng, 2);
+      const nearbyHospitals = filterByRadius(allHospitals, location.lat, location.lng, 3);
       const nearbyParks     = filterByRadius(allParks,     location.lat, location.lng, 1);
 
       if (map) {
@@ -234,7 +234,7 @@
     const location = await BostonAPI.geocodeAddress(address);
     hideLoading();
     if (!location) {
-      alert('Address not found. Try something like "360 Huntington Ave, Boston, MA".');
+      alert('Address not found. Please include a street number, street name, and city — e.g. "207 Prospect St, Cambridge, MA".');
       return;
     }
     runSearch(location, address);
