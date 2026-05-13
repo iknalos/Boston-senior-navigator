@@ -4,8 +4,7 @@
   const searchBtn = document.getElementById('search-btn');
   const searchInput = document.getElementById('address-input');
   const loadingOverlay = document.getElementById('loading-overlay');
-  const placeholderState = document.getElementById('results-placeholder');
-  const resultsPanel = document.getElementById('results-panel');
+  const resultsAddress = document.getElementById('results-address');
   const hospitalCount = document.getElementById('hosp-count');
   const parkCount = document.getElementById('parks-count');
   const hazardCount = document.getElementById('hazards-count');
@@ -18,11 +17,6 @@
 
   function showLoading() { loadingOverlay.removeAttribute('hidden'); }
   function hideLoading() { loadingOverlay.setAttribute('hidden', ''); }
-
-  function showResults() {
-    placeholderState.setAttribute('hidden', '');
-    resultsPanel.removeAttribute('hidden');
-  }
 
   function setVulnerabilityBadge(score) {
     let label, cls;
@@ -112,8 +106,7 @@
       parkCount.textContent = nearbyParks.length;
       hazardCount.textContent = hazards.length;
       setVulnerabilityBadge(vulnScore);
-
-      showResults();
+      resultsAddress.textContent = address;
       setTimeout(function () { if (map) map.invalidateSize(); }, 100);
     } catch (err) {
       console.error('Search failed:', err);
