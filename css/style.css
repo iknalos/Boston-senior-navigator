@@ -459,6 +459,32 @@ a:hover {
   font-style: italic;
 }
 
+/* External resource link */
+.ext-resources {
+  margin: 6px 0 2px;
+}
+
+.ext-resource-btn {
+  display:       block;
+  width:         100%;
+  padding:       9px var(--space-md);
+  font-size:     var(--font-size-sm);
+  font-weight:   600;
+  text-align:    center;
+  color:         var(--color-navy-dark);
+  background:    #eef4ff;
+  border:        2px solid #b0c8f0;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition:    background 0.15s, border-color 0.15s;
+}
+
+.ext-resource-btn:hover {
+  background:    #d8eaff;
+  border-color:  var(--color-navy);
+  color:         var(--color-navy-dark);
+}
+
 /* Optional resource chips */
 .optional-section {
   margin:     6px 0 2px;
