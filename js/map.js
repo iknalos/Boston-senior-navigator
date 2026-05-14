@@ -310,9 +310,6 @@
       '<span style="font-size:16px;">&#9888;&#65039; 311 Hazards</span>': _layers.hazards,
       '<span style="font-size:16px;">&#127968; Your Location</span>': _layers.userLocation,
       '<span style="font-size:16px;">&#128652; Live Transit</span>': _layers.transit,
-      '<span style="font-size:16px;">&#127963; Senior Centers</span>': _layers.seniors,
-      '<span style="font-size:16px;">&#129658; Health Centers</span>': _layers.health,
-      '<span style="font-size:16px;">&#127869; Community Centers</span>': _layers.community,
     };
 
     _layerControl = L.control.layers(null, overlays, {
@@ -502,9 +499,10 @@
       .bindPopup(popupHtml, { maxWidth: 300 })
       .addTo(_layers.userLocation);
 
-    // 0.5 mile = 804.672 metres
+    // Radius driven by caller; default 1 mile
+    var radiusMeters = typeof arguments[3] === 'number' ? arguments[3] * 1609.34 : 1609.34;
     _userCircle = L.circle([lat, lng], {
-      radius: 804.672,
+      radius: radiusMeters,
       color: '#1a73e8',
       weight: 2,
       opacity: 0.8,
@@ -775,6 +773,18 @@
     clearRoute();
   }
 
+  /** Clear a single named layer (e.g. when a chip is toggled off). */
+  function clearLayer(layerName) {
+    if (_layers[layerName]) _layers[layerName].clearLayers();
+  }
+
+  /** Resize the search-radius circle without re-creating the user location marker. */
+  function updateCircleRadius(radiusMiles) {
+    if (_userCircle) {
+      _userCircle.setRadius(radiusMiles * 1609.34);
+    }
+  }
+
   /**
    * clearAll()
    * Removes all markers and the user-location circle from the map.
@@ -821,6 +831,8 @@
     plotHealthCenters: plotHealthCenters,
     plotCommunityCenters: plotCommunityCenters,
     clearDataLayers: clearDataLayers,
+    clearLayer: clearLayer,
+    updateCircleRadius: updateCircleRadius,
     setUserLocation: setUserLocation,
     clearAll: clearAll,
     flyToLocation: flyToLocation,
