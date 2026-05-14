@@ -855,6 +855,14 @@
     }
 
     renderNearestList(hospList,  nearbyHospitals, 'name', location.lat, location.lng, 8);
+    if (!nearbyHospitals.length) {
+      var hospNote = allHospitals.length
+        ? 'No hospitals within ' + r + ' mi of your location. Boston\'s major hospitals are clustered in the Longwood Medical Area (Brigham &amp; Women\'s, Children\'s, BIDMC, Dana-Farber) and downtown (MGH, Tufts). Try a wider radius or search one of those areas.'
+        : 'Hospital data is loading… please wait a moment.';
+      hospList.innerHTML = '<li class="nearest-item nearest-item--note">' + hospNote + '</li>';
+      hospList.removeAttribute('hidden');
+    }
+
     renderNearestList(parksList, nearbyParks,     'name', location.lat, location.lng, 8);
 
     if (!nearbyParks.length) {
