@@ -1117,7 +1117,7 @@
       });
     });
 
-    searchBtn.addEventListener('click', handleSearch);
+    if (searchBtn) searchBtn.addEventListener('click', handleSearch);
     locateBtn.addEventListener('click', handleLocate);
     searchInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); handleSearch(); }
