@@ -15,7 +15,7 @@
   />
 
   <!-- App styles -->
-  <link rel="stylesheet" href="css/style.css?v=41" />
+  <link rel="stylesheet" href="css/style.css?v=42" />
 </head>
 <body>
 
@@ -39,8 +39,14 @@
           <p class="site-tagline">Find hospitals, safe parks, and resources near you</p>
         </div>
       </div>
+      <button id="font-toggle" class="font-toggle-btn" type="button" aria-pressed="false" aria-label="Increase text size">A+</button>
     </div>
   </header>
+
+  <div id="weather-banner" class="weather-banner" hidden>
+    <span class="weather-banner__icon" aria-hidden="true">&#9888;</span>
+    <span class="weather-banner__text"></span>
+  </div>
 
   <!-- ============================================================
        SEARCH BAR
@@ -94,7 +100,13 @@
 
       <div id="results-panel" class="results-panel">
 
-        <h2 class="results-heading">Nearby Resources</h2>
+        <div class="results-heading-row">
+          <h2 class="results-heading">Nearby Resources</h2>
+          <div class="share-print-row">
+            <button id="share-btn" class="share-btn" type="button">&#128279; Share</button>
+            <button id="print-btn" class="print-btn" type="button">&#128438; Print</button>
+          </div>
+        </div>
         <p id="results-address" class="results-address">Enter an address above to see results.</p>
 
         <!-- Hospitals card -->
@@ -143,6 +155,11 @@
             <button class="opt-chip" id="opt-seniors"   data-cat="seniors"    type="button">&#127963; Senior Centers</button>
             <button class="opt-chip" id="opt-health"    data-cat="health"     type="button">&#129658; Health Centers</button>
             <button class="opt-chip" id="opt-community" data-cat="community"  type="button">&#127869; Community Centers</button>
+            <button class="opt-chip" id="opt-dental"  data-cat="dental"  type="button">&#129463; Dental</button>
+            <button class="opt-chip" id="opt-mental"  data-cat="mental"  type="button">&#129504; Mental Health</button>
+            <button class="opt-chip" id="opt-food"    data-cat="food"    type="button">&#127857; Food Pantries</button>
+            <button class="opt-chip" id="opt-markets" data-cat="markets" type="button">&#129365; Farmers Markets</button>
+            <button class="opt-chip" id="opt-cooling" data-cat="cooling" type="button">&#10052; Cooling Centers</button>
           </div>
         </div>
 
@@ -185,6 +202,71 @@
           </div>
         </div>
 
+        <!-- Dental Clinics card (hidden until chip activated) -->
+        <div class="result-card result-card--dental" id="card-dental" role="region" aria-labelledby="dental-heading" hidden>
+          <div class="result-card__icon" aria-hidden="true">&#129463;</div>
+          <div class="result-card__body">
+            <h3 class="result-card__heading" id="dental-heading">Dental Clinics</h3>
+            <p class="result-card__count">
+              <span id="dental-count" class="count-number">—</span>
+              <span class="count-label" id="dental-radius-label"></span>
+            </p>
+            <ul id="dental-list" class="nearest-list" hidden></ul>
+          </div>
+        </div>
+
+        <!-- Mental Health card (hidden until chip activated) -->
+        <div class="result-card result-card--mental" id="card-mental" role="region" aria-labelledby="mental-heading" hidden>
+          <div class="result-card__icon" aria-hidden="true">&#129504;</div>
+          <div class="result-card__body">
+            <h3 class="result-card__heading" id="mental-heading">Mental Health</h3>
+            <p class="result-card__count">
+              <span id="mental-count" class="count-number">—</span>
+              <span class="count-label" id="mental-radius-label"></span>
+            </p>
+            <ul id="mental-list" class="nearest-list" hidden></ul>
+          </div>
+        </div>
+
+        <!-- Food Pantries card (hidden until chip activated) -->
+        <div class="result-card result-card--food" id="card-food" role="region" aria-labelledby="food-heading" hidden>
+          <div class="result-card__icon" aria-hidden="true">&#127857;</div>
+          <div class="result-card__body">
+            <h3 class="result-card__heading" id="food-heading">Food Pantries</h3>
+            <p class="result-card__count">
+              <span id="food-count" class="count-number">—</span>
+              <span class="count-label" id="food-radius-label"></span>
+            </p>
+            <ul id="food-list" class="nearest-list" hidden></ul>
+          </div>
+        </div>
+
+        <!-- Farmers Markets card (hidden until chip activated) -->
+        <div class="result-card result-card--markets" id="card-markets" role="region" aria-labelledby="markets-heading" hidden>
+          <div class="result-card__icon" aria-hidden="true">&#129365;</div>
+          <div class="result-card__body">
+            <h3 class="result-card__heading" id="markets-heading">Farmers Markets</h3>
+            <p class="result-card__count">
+              <span id="markets-count" class="count-number">—</span>
+              <span class="count-label" id="markets-radius-label"></span>
+            </p>
+            <ul id="markets-list" class="nearest-list" hidden></ul>
+          </div>
+        </div>
+
+        <!-- Cooling Centers card (hidden until chip activated) -->
+        <div class="result-card result-card--cooling" id="card-cooling" role="region" aria-labelledby="cooling-heading" hidden>
+          <div class="result-card__icon" aria-hidden="true">&#10052;</div>
+          <div class="result-card__body">
+            <h3 class="result-card__heading" id="cooling-heading">Cooling/Warming Centers</h3>
+            <p class="result-card__count">
+              <span id="cooling-count" class="count-number">—</span>
+              <span class="count-label" id="cooling-radius-label"></span>
+            </p>
+            <ul id="cooling-list" class="nearest-list" hidden></ul>
+          </div>
+        </div>
+
         <!-- External resources -->
         <div class="ext-resources">
           <a id="snap-link"
@@ -203,6 +285,29 @@
             <span id="vuln-label">Unknown</span>
           </div>
           <p id="vuln-description" class="vuln-description"></p>
+        </div>
+
+        <!-- Emergency quick contacts -->
+        <div class="emergency-panel" role="complementary" aria-label="Emergency contacts">
+          <h3 class="emergency-panel__heading">&#128222; Quick Contacts</h3>
+          <div class="emergency-links">
+            <a href="tel:911" class="emergency-link emergency-link--danger">&#128680; 911 — Emergency</a>
+            <a href="tel:211" class="emergency-link">&#8505; 211 — Social Services (MA)</a>
+            <a href="tel:18002221222" class="emergency-link">&#129514; Poison Control: 1-800-222-1222</a>
+            <a href="tel:18009222275" class="emergency-link">&#128737; Elder Abuse: 1-800-922-2275</a>
+          </div>
+        </div>
+
+        <!-- Senior services hub -->
+        <div class="age-strong-panel" role="complementary" aria-label="Senior services">
+          <h3 class="age-strong-panel__heading">&#127963; Senior Programs &amp; Services</h3>
+          <div class="age-strong-links">
+            <a href="https://age-strong.boston.gov" target="_blank" rel="noopener noreferrer" class="age-strong-link">&#127963; Age Strong Commission</a>
+            <a href="https://www.mealsonwheelsne.org" target="_blank" rel="noopener noreferrer" class="age-strong-link">&#127869; Meals on Wheels MA</a>
+            <a href="https://www.masscap.org/fuel-assistance" target="_blank" rel="noopener noreferrer" class="age-strong-link">&#128293; Fuel &amp; Utility Assistance (LIHEAP)</a>
+            <a href="https://www.gbls.org/seniors" target="_blank" rel="noopener noreferrer" class="age-strong-link">&#9878;&#65039; Free Elder Legal Aid (GBLS)</a>
+            <a href="https://www.mbta.com/accessibility/the-ride" target="_blank" rel="noopener noreferrer" class="age-strong-link">&#128656; The RIDE — MBTA Paratransit</a>
+          </div>
         </div>
 
       </div><!-- /#results-panel -->
@@ -294,15 +399,15 @@
       &mdash; City of Boston Open Data
     </p>
   </footer>
-  <div class="site-version" aria-label="Version 41">v41</div>
+  <div class="site-version" aria-label="Version 42">v42</div>
 
   <!-- Leaflet JS (no integrity check to avoid SRI blocking) -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- App scripts (order matters) -->
-  <script src="js/api.js?v=41"></script>
-  <script src="js/map.js?v=41"></script>
-  <script src="js/app.js?v=41"></script>
+  <script src="js/api.js?v=42"></script>
+  <script src="js/map.js?v=42"></script>
+  <script src="js/app.js?v=42"></script>
 
 </body>
 </html>
