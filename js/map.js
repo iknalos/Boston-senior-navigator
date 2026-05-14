@@ -24,6 +24,11 @@
     seniors:      null,   // Councils on Aging / Senior Centers
     health:       null,   // Community Health Centers
     community:    null,   // BCYF Community Centers
+    dental:       null,
+    mental:       null,
+    food:         null,
+    markets:      null,
+    cooling:      null,
   };
 
   // The Leaflet layer-control instance (kept so we can re-add overlays)
@@ -249,6 +254,26 @@
           '<div class="bfm-legend-row">' +
           '  <span class="bfm-legend-icon" aria-hidden="true">&#127869;</span>' +
           '  <span class="bfm-legend-label">Community Center</span>' +
+          '</div>' +
+          '<div class="bfm-legend-row">' +
+          '  <span class="bfm-legend-icon" aria-hidden="true">&#129463;</span>' +
+          '  <span class="bfm-legend-label">Dental Clinic</span>' +
+          '</div>' +
+          '<div class="bfm-legend-row">' +
+          '  <span class="bfm-legend-icon" aria-hidden="true">&#129504;</span>' +
+          '  <span class="bfm-legend-label">Mental Health</span>' +
+          '</div>' +
+          '<div class="bfm-legend-row">' +
+          '  <span class="bfm-legend-icon" aria-hidden="true">&#127857;</span>' +
+          '  <span class="bfm-legend-label">Food Pantry</span>' +
+          '</div>' +
+          '<div class="bfm-legend-row">' +
+          '  <span class="bfm-legend-icon" aria-hidden="true">&#129365;</span>' +
+          '  <span class="bfm-legend-label">Farmers Market</span>' +
+          '</div>' +
+          '<div class="bfm-legend-row">' +
+          '  <span class="bfm-legend-icon" aria-hidden="true">&#10052;</span>' +
+          '  <span class="bfm-legend-label">Cooling Center</span>' +
           '</div>';
         // Prevent map clicks from firing through the legend
         L.DomEvent.disableClickPropagation(div);
@@ -302,6 +327,11 @@
     _layers.seniors      = L.layerGroup().addTo(_map);
     _layers.health       = L.layerGroup().addTo(_map);
     _layers.community    = L.layerGroup().addTo(_map);
+    _layers.dental       = L.layerGroup().addTo(_map);
+    _layers.mental       = L.layerGroup().addTo(_map);
+    _layers.food         = L.layerGroup().addTo(_map);
+    _layers.markets      = L.layerGroup().addTo(_map);
+    _layers.cooling      = L.layerGroup().addTo(_map);
 
     // Layer control (overlays only — no base-layer switcher needed)
     var overlays = {
@@ -470,6 +500,27 @@
       _markerRegistry[_markerKey(c.lat, c.lng)] = { marker: marker, emoji: '🍽️', cls: 'bfm-community-icon', size: 34 };
     });
   }
+
+  function _plotOverpassItems(items, emoji, cls, layer, desc) {
+    if (!_map || !Array.isArray(items)) return;
+    var icon = _makeEmojiIcon(emoji, 34, cls);
+    items.forEach(function(c) {
+      if (!c.lat || !c.lng) return;
+      var extra = '';
+      if (c.phone)   extra += '<p class="bfm-popup-meta"><strong>Phone:</strong> <a href="tel:' + _esc(c.phone) + '">' + _esc(c.phone) + '</a></p>';
+      if (c.website) extra += '<p class="bfm-popup-meta"><a href="' + _esc(c.website) + '" target="_blank" rel="noopener">Website</a></p>';
+      var popup = _buildPopup(c.name || 'Resource', c.address, desc, extra);
+      var marker = L.marker([c.lat, c.lng], { icon: icon, alt: c.name || 'Resource' })
+        .bindPopup(popup, { maxWidth: 300 }).addTo(layer);
+      _markerRegistry[_markerKey(c.lat, c.lng)] = { marker: marker, emoji: emoji, cls: cls, size: 34 };
+    });
+  }
+
+  function plotDentalClinics(items)  { _plotOverpassItems(items, '🦷', 'bfm-dental-icon',  _layers.dental,  'Dental clinic'); }
+  function plotMentalHealth(items)   { _plotOverpassItems(items, '🧠', 'bfm-mental-icon',  _layers.mental,  'Counseling & mental health services'); }
+  function plotFoodPantries(items)   { _plotOverpassItems(items, '🍱', 'bfm-food-icon',    _layers.food,    'Food pantry — free food assistance'); }
+  function plotFarmersMarkets(items) { _plotOverpassItems(items, '🥕', 'bfm-markets-icon', _layers.markets, 'Farmers market — accepts SNAP/EBT'); }
+  function plotCoolingCenters(items) { _plotOverpassItems(items, '❄️', 'bfm-cooling-icon', _layers.cooling, 'Cooling/warming center — free public shelter'); }
 
   /**
    * setUserLocation(lat, lng, address)
@@ -766,7 +817,7 @@
   function clearDataLayers() {
     clearHighlight();
     _markerRegistry = {};
-    ['hospitals', 'parks', 'hazards', 'seniors', 'health', 'community'].forEach(function (key) {
+    ['hospitals', 'parks', 'hazards', 'seniors', 'health', 'community', 'dental', 'mental', 'food', 'markets', 'cooling'].forEach(function (key) {
       if (_layers[key]) _layers[key].clearLayers();
     });
     clearHoverLine();
@@ -830,6 +881,11 @@
     plotSeniorCenters: plotSeniorCenters,
     plotHealthCenters: plotHealthCenters,
     plotCommunityCenters: plotCommunityCenters,
+    plotDentalClinics: plotDentalClinics,
+    plotMentalHealth: plotMentalHealth,
+    plotFoodPantries: plotFoodPantries,
+    plotFarmersMarkets: plotFarmersMarkets,
+    plotCoolingCenters: plotCoolingCenters,
     clearDataLayers: clearDataLayers,
     clearLayer: clearLayer,
     updateCircleRadius: updateCircleRadius,
