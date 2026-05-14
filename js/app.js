@@ -722,9 +722,13 @@
       const iAddr = item.address   || '';
       const iLat  = parseFloat(item.lat);
       const iLng  = parseFloat(item.lng);
+      var _gmQ = encodeURIComponent(iName + (iAddr ? ' ' + iAddr : '') + ' Boston MA');
       li.innerHTML =
         '<span class="place-main"><span class="place-name">' + _esc(iName) + '</span>' +
-        (item.phone ? '<a class="place-phone" href="tel:' + _esc(item.phone) + '" onclick="event.stopPropagation()">' + _esc(item.phone) + '</a>' : '') +
+        (item.phone
+          ? '<a class="place-phone" href="tel:' + _esc(item.phone) + '" onclick="event.stopPropagation()">' + _esc(item.phone) + '</a>'
+          : '<a class="place-phone place-gmaps" href="https://www.google.com/maps/search/?api=1&query=' + _gmQ + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Google Maps ↗</a>'
+        ) +
         '</span><span class="place-dist">' + formatDist(d) + '</span>';
       li.title = 'Click for directions';
       li.setAttribute('tabindex', '0');
