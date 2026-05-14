@@ -137,14 +137,14 @@
   async function fetchHospitals() {
     console.log('[BostonAPI] fetchHospitals: fetching', RESOURCE_IDS.hospitals);
     try {
-      const records = await fetchAllRecords(RESOURCE_IDS.hospitals);
+      const records = await _withTimeout(fetchAllRecords(RESOURCE_IDS.hospitals), 20000);
       return records
         .map((r) => ({
           name:         r.Name        || r.name        || '',
           address:      r.Address     || r.address     || '',
           lat:          parseFloat(r.Latitude  || r.POINT_Y || 0),
           lng:          parseFloat(r.Longitude || r.POINT_X || 0),
-          phone:        r.Phone       || r.phone       || r.PHONE || '',
+          phone:        r.PhoneNumbe  || r.Phone       || r.phone || r.PHONE || '',
           // The hospitals dataset doesn't carry a neighborhood field;
           // zip code is included as a lightweight proxy.
           neighborhood: r.Zipcode     || r.zipcode     || '',
