@@ -10,11 +10,17 @@
   const hospitalCount  = document.getElementById('hosp-count');
   const parkCount      = document.getElementById('parks-count');
   const hazardCount    = document.getElementById('hazards-count');
+  const seniorsCount   = document.getElementById('seniors-count');
+  const healthCount    = document.getElementById('health-count');
+  const communityCount = document.getElementById('community-count');
   const vulnBadge      = document.getElementById('vuln-badge');
   const suggestionsList = document.getElementById('address-suggestions');
   const hospList       = document.getElementById('hosp-list');
   const parksList      = document.getElementById('parks-list');
   const hazardsList    = document.getElementById('hazards-list');
+  const seniorsList    = document.getElementById('seniors-list');
+  const healthList     = document.getElementById('health-list');
+  const communityList  = document.getElementById('community-list');
 
   const resultsPanel       = document.getElementById('results-panel');
   const directionsPanel    = document.getElementById('directions-panel');
@@ -42,6 +48,7 @@
   // ── App state ─────────────────────────────────────────────────
   let map = null;
   let allHospitals = [], allParks = [], allVulnerability = [];
+  let allSeniorCenters = [], allHealthCenters = [], allCommunityCenters = [];
   let autocompleteTimer = null, selectedSuggestion = null;
   let currentLocation = null;
   let currentDest = null;
@@ -806,30 +813,46 @@
 
       const [hazards] = await Promise.all([
         BostonAPI.fetch311Hazards(location.lat, location.lng, 0.5),
-        allHospitals.length     ? Promise.resolve() : BostonAPI.fetchHospitals().then(h     => { allHospitals     = h; }),
-        allParks.length         ? Promise.resolve() : BostonAPI.fetchAccessibleParks().then(p => { allParks         = p; }),
-        allVulnerability.length ? Promise.resolve() : BostonAPI.fetchSocialVulnerability().then(v => { allVulnerability = v; }),
+        allHospitals.length       ? Promise.resolve() : BostonAPI.fetchHospitals().then(h            => { allHospitals       = h; }),
+        allParks.length           ? Promise.resolve() : BostonAPI.fetchAccessibleParks().then(p       => { allParks           = p; }),
+        allVulnerability.length   ? Promise.resolve() : BostonAPI.fetchSocialVulnerability().then(v   => { allVulnerability   = v; }),
+        allSeniorCenters.length   ? Promise.resolve() : BostonAPI.fetchSeniorCenters().then(s         => { allSeniorCenters   = s; }),
+        allHealthCenters.length   ? Promise.resolve() : BostonAPI.fetchCommunityHealthCenters().then(h => { allHealthCenters  = h; }),
+        allCommunityCenters.length? Promise.resolve() : BostonAPI.fetchCommunityCenters().then(c      => { allCommunityCenters = c; }),
       ]);
 
       currentLocation = location;
-      const nearbyHospitals = filterByRadius(allHospitals, location.lat, location.lng, 3);
-      const nearbyParks     = filterByRadius(allParks,     location.lat, location.lng, 1.5);
+      const nearbyHospitals  = filterByRadius(allHospitals,       location.lat, location.lng, 3);
+      const nearbyParks      = filterByRadius(allParks,            location.lat, location.lng, 1.5);
+      const nearbySeniors    = filterByRadius(allSeniorCenters,    location.lat, location.lng, 3);
+      const nearbyHealth     = filterByRadius(allHealthCenters,    location.lat, location.lng, 3);
+      const nearbyCommunity  = filterByRadius(allCommunityCenters, location.lat, location.lng, 2);
 
       if (map) {
         BostonMap.plotHospitals(nearbyHospitals);
         BostonMap.plotParks(nearbyParks);
         BostonMap.plotHazards(hazards);
+        BostonMap.plotSeniorCenters(nearbySeniors);
+        BostonMap.plotHealthCenters(nearbyHealth);
+        BostonMap.plotCommunityCenters(nearbyCommunity);
         setTimeout(function () { map.invalidateSize(); }, 100);
       }
 
       hospitalCount.textContent  = nearbyHospitals.length;
       parkCount.textContent      = nearbyParks.length;
       hazardCount.textContent    = hazards.length;
+      seniorsCount.textContent   = nearbySeniors.length;
+      healthCount.textContent    = nearbyHealth.length;
+      communityCount.textContent = nearbyCommunity.length;
       setVulnerabilityBadge(medianVulnScore());
       resultsAddress.textContent = address;
 
-      renderNearestList(hospList,   nearbyHospitals, 'name', location.lat, location.lng, 8);
-      renderNearestList(parksList,  nearbyParks,     'name', location.lat, location.lng, 8);
+      renderNearestList(hospList,      nearbyHospitals, 'name', location.lat, location.lng, 8);
+      renderNearestList(parksList,     nearbyParks,     'name', location.lat, location.lng, 8);
+      renderNearestList(seniorsList,   nearbySeniors,   'name', location.lat, location.lng, 8);
+      renderNearestList(healthList,    nearbyHealth,    'name', location.lat, location.lng, 8);
+      renderNearestList(communityList, nearbyCommunity, 'name', location.lat, location.lng, 8);
+
       if (!nearbyParks.length) {
         parksList.innerHTML = '<li class="nearest-item nearest-item--note">BPRD accessible parks data covers Boston proper. Nearby cities (Cambridge, Somerville) have separate park systems.</li>';
         parksList.removeAttribute('hidden');
@@ -838,6 +861,10 @@
       if (!hazards.length) {
         hazardsList.innerHTML = '<li class="nearest-item nearest-item--note">Boston 311 data covers Boston proper. Cambridge, Somerville &amp; other cities have separate systems.</li>';
         hazardsList.removeAttribute('hidden');
+      }
+      if (!nearbyCommunity.length) {
+        communityList.innerHTML = '<li class="nearest-item nearest-item--note">Boston BCYF community centers. Other cities have their own community center networks.</li>';
+        communityList.removeAttribute('hidden');
       }
 
       _startTransitRefresh();
