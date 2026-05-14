@@ -515,8 +515,13 @@
     items.forEach(function(c) {
       if (!c.lat || !c.lng) return;
       var extra = '';
-      if (c.phone)   extra += '<p class="bfm-popup-meta"><strong>Phone:</strong> <a href="tel:' + _esc(c.phone) + '">' + _esc(c.phone) + '</a></p>';
-      if (c.website) extra += '<p class="bfm-popup-meta"><a href="' + _esc(c.website) + '" target="_blank" rel="noopener">Website</a></p>';
+      if (c.phone) {
+        extra += '<p class="bfm-popup-meta"><strong>Phone:</strong> <a href="tel:' + _esc(c.phone) + '">' + _esc(c.phone) + '</a></p>';
+      } else {
+        var gmQuery = encodeURIComponent((c.name || '') + (c.address ? ' ' + c.address : '') + ' Boston MA');
+        extra += '<p class="bfm-popup-meta"><a href="https://www.google.com/maps/search/?api=1&query=' + gmQuery + '" target="_blank" rel="noopener">Find phone on Google Maps ↗</a></p>';
+      }
+      if (c.website) extra += '<p class="bfm-popup-meta"><a href="' + _esc(c.website) + '" target="_blank" rel="noopener">Website ↗</a></p>';
       var popup = _buildPopup(c.name || 'Resource', c.address, desc, extra);
       var marker = L.marker([c.lat, c.lng], { icon: icon, alt: c.name || 'Resource' })
         .bindPopup(popup, { maxWidth: 300 }).addTo(layer);
