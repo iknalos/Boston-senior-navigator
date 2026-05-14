@@ -58,28 +58,57 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Helper: create a DivIcon with an emoji and an accessible label
+  // Helper: create a DivIcon — colored circle badge with emoji inside
   // ---------------------------------------------------------------------------
-  // anchorY: fraction of icon height where the pin point is (0=top, 1=bottom).
-  // Default 0.5 (center) for resource markers; pass 1 for pin-style home marker.
-  function _makeEmojiIcon(emoji, size, extraClass, anchorYFraction) {
-    size = size || 36;
+  // bgColor: CSS color string for the circle background (required for contrast).
+  // anchorYFraction: fraction of icon height where the anchor point is (default 0.5).
+  function _makeEmojiIcon(emoji, size, extraClass, anchorYFraction, bgColor) {
+    size = size || 32;
     extraClass = extraClass || '';
     var ay = typeof anchorYFraction === 'number' ? anchorYFraction : 0.5;
     var anchorY = Math.round(size * ay);
+    var fs = Math.round(size * 0.56) + 'px';
+    var bg = bgColor || '#444';
+    var html =
+      '<div style="width:' + size + 'px;height:' + size + 'px;background:' + bg +
+      ';border-radius:50%;display:flex;align-items:center;justify-content:center;' +
+      'font-size:' + fs + ';box-shadow:0 2px 5px rgba(0,0,0,0.55);' +
+      'border:2px solid rgba(255,255,255,0.9);line-height:1;">' + emoji + '</div>';
     return L.divIcon({
-      html:
-        '<span role="img" aria-label="' +
-        emoji +
-        '" style="font-size:' +
-        size +
-        'px;line-height:1;display:block;text-align:center;">' +
-        emoji +
-        '</span>',
+      html: html,
       className: 'bfm-emoji-icon ' + extraClass,
       iconSize:    [size, size],
       iconAnchor:  [size / 2, anchorY],
       popupAnchor: [0, -(anchorY + 4)],
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helper: create a classic teardrop pin for "Your Location"
+  // ---------------------------------------------------------------------------
+  function _makeLocationPin(size) {
+    size = size || 36;
+    var cSz  = Math.round(size * 0.78);   // circle diameter
+    var tail = size - cSz;                // triangle height
+    var half = Math.round(size * 0.20);   // half-base of triangle
+    var dot  = Math.round(cSz * 0.34);   // inner white dot
+    var html =
+      '<div style="width:' + size + 'px;height:' + size + 'px;display:flex;flex-direction:column;align-items:center;">' +
+      '<div style="width:' + cSz + 'px;height:' + cSz + 'px;background:#e53935;border-radius:50%;' +
+      'border:2.5px solid white;box-shadow:0 2px 7px rgba(0,0,0,0.6);' +
+      'display:flex;align-items:center;justify-content:center;">' +
+      '<div style="width:' + dot + 'px;height:' + dot + 'px;background:white;border-radius:50%;"></div>' +
+      '</div>' +
+      '<div style="width:0;height:0;border-left:' + half + 'px solid transparent;' +
+      'border-right:' + half + 'px solid transparent;' +
+      'border-top:' + tail + 'px solid #e53935;margin-top:-1px;"></div>' +
+      '</div>';
+    return L.divIcon({
+      html: html,
+      className: 'bfm-home-icon',
+      iconSize:    [size, size],
+      iconAnchor:  [size / 2, size],
+      popupAnchor: [0, -(size + 4)],
     });
   }
 
@@ -225,56 +254,35 @@
         var div = L.DomUtil.create('div', 'bfm-legend');
         div.setAttribute('role', 'region');
         div.setAttribute('aria-label', 'Map legend');
+        function _legendBadge(emoji, bg) {
+          return '<span class="bfm-legend-icon" aria-hidden="true" style="' +
+            'display:inline-flex;align-items:center;justify-content:center;' +
+            'width:26px;height:26px;background:' + bg + ';border-radius:50%;' +
+            'font-size:15px;box-shadow:0 1px 3px rgba(0,0,0,0.4);' +
+            'border:1.5px solid rgba(255,255,255,0.85);">' + emoji + '</span>';
+        }
+        function _pinBadge() {
+          return '<span class="bfm-legend-icon" aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;">' +
+            '<svg width="16" height="22" viewBox="0 0 16 22" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+            '<ellipse cx="8" cy="8" rx="8" ry="8" fill="#e53935"/>' +
+            '<path d="M8 22 L1 8 Q8 0 15 8 Z" fill="#e53935"/>' +
+            '<circle cx="8" cy="8" r="3" fill="white"/>' +
+            '</svg></span>';
+        }
         div.innerHTML =
           '<h3>Map Key</h3>' +
-          '<div class="bfm-legend-row">' +
-          '  <span class="bfm-legend-icon" aria-hidden="true">&#127973;</span>' +
-          '  <span class="bfm-legend-label">Hospital</span>' +
-          '</div>' +
-          '<div class="bfm-legend-row">' +
-          '  <span class="bfm-legend-icon" aria-hidden="true">&#127795;</span>' +
-          '  <span class="bfm-legend-label">Accessible Park</span>' +
-          '</div>' +
-          '<div class="bfm-legend-row">' +
-          '  <span class="bfm-legend-icon" aria-hidden="true">&#9888;&#65039;</span>' +
-          '  <span class="bfm-legend-label">311 Hazard</span>' +
-          '</div>' +
-          '<div class="bfm-legend-row">' +
-          '  <span class="bfm-legend-icon" aria-hidden="true">&#127968;</span>' +
-          '  <span class="bfm-legend-label">Your Location</span>' +
-          '</div>' +
-          '<div class="bfm-legend-row">' +
-          '  <span class="bfm-legend-icon" aria-hidden="true">&#127963;</span>' +
-          '  <span class="bfm-legend-label">Senior Center</span>' +
-          '</div>' +
-          '<div class="bfm-legend-row">' +
-          '  <span class="bfm-legend-icon" aria-hidden="true">&#129658;</span>' +
-          '  <span class="bfm-legend-label">Health Center</span>' +
-          '</div>' +
-          '<div class="bfm-legend-row">' +
-          '  <span class="bfm-legend-icon" aria-hidden="true">&#127869;</span>' +
-          '  <span class="bfm-legend-label">Community Center</span>' +
-          '</div>' +
-          '<div class="bfm-legend-row">' +
-          '  <span class="bfm-legend-icon" aria-hidden="true">&#129463;</span>' +
-          '  <span class="bfm-legend-label">Dental Clinic</span>' +
-          '</div>' +
-          '<div class="bfm-legend-row">' +
-          '  <span class="bfm-legend-icon" aria-hidden="true">&#129504;</span>' +
-          '  <span class="bfm-legend-label">Mental Health</span>' +
-          '</div>' +
-          '<div class="bfm-legend-row">' +
-          '  <span class="bfm-legend-icon" aria-hidden="true">&#127857;</span>' +
-          '  <span class="bfm-legend-label">Food Pantry</span>' +
-          '</div>' +
-          '<div class="bfm-legend-row">' +
-          '  <span class="bfm-legend-icon" aria-hidden="true">&#129365;</span>' +
-          '  <span class="bfm-legend-label">Farmers Market</span>' +
-          '</div>' +
-          '<div class="bfm-legend-row">' +
-          '  <span class="bfm-legend-icon" aria-hidden="true">&#10052;</span>' +
-          '  <span class="bfm-legend-label">Cooling Center</span>' +
-          '</div>';
+          '<div class="bfm-legend-row">' + _legendBadge('🏥','#c62828') + '<span class="bfm-legend-label">Hospital</span></div>' +
+          '<div class="bfm-legend-row">' + _legendBadge('🌳','#2e7d32') + '<span class="bfm-legend-label">Accessible Park</span></div>' +
+          '<div class="bfm-legend-row">' + _legendBadge('⚠️','#e65100') + '<span class="bfm-legend-label">311 Hazard</span></div>' +
+          '<div class="bfm-legend-row">' + _pinBadge()                  + '<span class="bfm-legend-label">Your Location</span></div>' +
+          '<div class="bfm-legend-row">' + _legendBadge('🏛️','#1565c0') + '<span class="bfm-legend-label">Senior Center</span></div>' +
+          '<div class="bfm-legend-row">' + _legendBadge('🩺','#00695c') + '<span class="bfm-legend-label">Health Center</span></div>' +
+          '<div class="bfm-legend-row">' + _legendBadge('🍽️','#6a1b9a') + '<span class="bfm-legend-label">Community Center</span></div>' +
+          '<div class="bfm-legend-row">' + _legendBadge('🦷','#0277bd') + '<span class="bfm-legend-label">Dental Clinic</span></div>' +
+          '<div class="bfm-legend-row">' + _legendBadge('🧠','#4527a0') + '<span class="bfm-legend-label">Mental Health</span></div>' +
+          '<div class="bfm-legend-row">' + _legendBadge('🍱','#bf360c') + '<span class="bfm-legend-label">Food Pantry</span></div>' +
+          '<div class="bfm-legend-row">' + _legendBadge('🥕','#1b5e20') + '<span class="bfm-legend-label">Farmers Market</span></div>' +
+          '<div class="bfm-legend-row">' + _legendBadge('❄️','#0d47a1') + '<span class="bfm-legend-label">Cooling Center</span></div>';
         // Prevent map clicks from firing through the legend
         L.DomEvent.disableClickPropagation(div);
         L.DomEvent.disableScrollPropagation(div);
@@ -338,7 +346,7 @@
       '<span style="font-size:16px;">&#127973; Hospitals</span>': _layers.hospitals,
       '<span style="font-size:16px;">&#127795; Accessible Parks</span>': _layers.parks,
       '<span style="font-size:16px;">&#9888;&#65039; 311 Hazards</span>': _layers.hazards,
-      '<span style="font-size:16px;">&#127968; Your Location</span>': _layers.userLocation,
+      '<span style="font-size:16px;">📍 Your Location</span>': _layers.userLocation,
       '<span style="font-size:16px;">&#128652; Live Transit</span>': _layers.transit,
     };
 
@@ -364,7 +372,7 @@
     if (!_map) { console.error('BostonMap: call initMap() first.'); return; }
     if (!Array.isArray(hospitals)) return;
 
-    var icon = _makeEmojiIcon('🏥', 36, 'bfm-hospital-icon');
+    var icon = _makeEmojiIcon('🏥', 32, 'bfm-hospital-icon', 0.5, '#c62828');
 
     hospitals.forEach(function (h) {
       if (h.lat == null || h.lng == null) return;
@@ -373,7 +381,7 @@
       var marker = L.marker([h.lat, h.lng], { icon: icon, alt: h.name || 'Hospital' })
         .bindPopup(popup, { maxWidth: 300 })
         .addTo(_layers.hospitals);
-      _markerRegistry[_markerKey(h.lat, h.lng)] = { marker: marker, emoji: '🏥', cls: 'bfm-hospital-icon', size: 36 };
+      _markerRegistry[_markerKey(h.lat, h.lng)] = { marker: marker, emoji: '🏥', cls: 'bfm-hospital-icon', size: 32, bgColor: '#c62828' };
     });
   }
 
@@ -386,7 +394,7 @@
     if (!_map) { console.error('BostonMap: call initMap() first.'); return; }
     if (!Array.isArray(parks)) return;
 
-    var icon = _makeEmojiIcon('🌳', 36, 'bfm-park-icon');
+    var icon = _makeEmojiIcon('🌳', 32, 'bfm-park-icon', 0.5, '#2e7d32');
 
     parks.forEach(function (p) {
       if (p.lat == null || p.lng == null) return;
@@ -395,7 +403,7 @@
       var marker = L.marker([p.lat, p.lng], { icon: icon, alt: p.name || 'Accessible Park' })
         .bindPopup(popup, { maxWidth: 300 })
         .addTo(_layers.parks);
-      _markerRegistry[_markerKey(p.lat, p.lng)] = { marker: marker, emoji: '🌳', cls: 'bfm-park-icon', size: 36 };
+      _markerRegistry[_markerKey(p.lat, p.lng)] = { marker: marker, emoji: '🌳', cls: 'bfm-park-icon', size: 32, bgColor: '#2e7d32' };
     });
   }
 
@@ -408,7 +416,7 @@
     if (!_map) { console.error('BostonMap: call initMap() first.'); return; }
     if (!Array.isArray(hazards)) return;
 
-    var icon = _makeEmojiIcon('⚠️', 34, 'bfm-hazard-icon');
+    var icon = _makeEmojiIcon('⚠️', 32, 'bfm-hazard-icon', 0.5, '#e65100');
 
     hazards.forEach(function (h) {
       if (h.lat == null || h.lng == null) return;
@@ -445,7 +453,7 @@
   function plotSeniorCenters(centers) {
     if (!_map) return;
     if (!Array.isArray(centers)) return;
-    var icon = _makeEmojiIcon('🏛️', 34, 'bfm-seniors-icon');
+    var icon = _makeEmojiIcon('🏛️', 32, 'bfm-seniors-icon', 0.5, '#1565c0');
     centers.forEach(function (c) {
       if (c.lat == null || c.lng == null) return;
       var extra = '';
@@ -455,7 +463,7 @@
       var marker = L.marker([c.lat, c.lng], { icon: icon, alt: c.name })
         .bindPopup(popup, { maxWidth: 300 })
         .addTo(_layers.seniors);
-      _markerRegistry[_markerKey(c.lat, c.lng)] = { marker: marker, emoji: '🏛️', cls: 'bfm-seniors-icon', size: 34 };
+      _markerRegistry[_markerKey(c.lat, c.lng)] = { marker: marker, emoji: '🏛️', cls: 'bfm-seniors-icon', size: 32, bgColor: '#1565c0' };
     });
   }
 
@@ -466,7 +474,7 @@
   function plotHealthCenters(centers) {
     if (!_map) return;
     if (!Array.isArray(centers)) return;
-    var icon = _makeEmojiIcon('🩺', 34, 'bfm-health-icon');
+    var icon = _makeEmojiIcon('🩺', 32, 'bfm-health-icon', 0.5, '#00695c');
     centers.forEach(function (c) {
       if (c.lat == null || c.lng == null) return;
       var extra = '';
@@ -477,7 +485,7 @@
       var marker = L.marker([c.lat, c.lng], { icon: icon, alt: c.name })
         .bindPopup(popup, { maxWidth: 300 })
         .addTo(_layers.health);
-      _markerRegistry[_markerKey(c.lat, c.lng)] = { marker: marker, emoji: '🩺', cls: 'bfm-health-icon', size: 34 };
+      _markerRegistry[_markerKey(c.lat, c.lng)] = { marker: marker, emoji: '🩺', cls: 'bfm-health-icon', size: 32, bgColor: '#00695c' };
     });
   }
 
@@ -488,7 +496,7 @@
   function plotCommunityCenters(centers) {
     if (!_map) return;
     if (!Array.isArray(centers)) return;
-    var icon = _makeEmojiIcon('🍽️', 34, 'bfm-community-icon');
+    var icon = _makeEmojiIcon('🍽️', 32, 'bfm-community-icon', 0.5, '#6a1b9a');
     centers.forEach(function (c) {
       if (c.lat == null || c.lng == null) return;
       var extra = '';
@@ -497,13 +505,13 @@
       var marker = L.marker([c.lat, c.lng], { icon: icon, alt: c.name })
         .bindPopup(popup, { maxWidth: 300 })
         .addTo(_layers.community);
-      _markerRegistry[_markerKey(c.lat, c.lng)] = { marker: marker, emoji: '🍽️', cls: 'bfm-community-icon', size: 34 };
+      _markerRegistry[_markerKey(c.lat, c.lng)] = { marker: marker, emoji: '🍽️', cls: 'bfm-community-icon', size: 32, bgColor: '#6a1b9a' };
     });
   }
 
-  function _plotOverpassItems(items, emoji, cls, layer, desc) {
+  function _plotOverpassItems(items, emoji, cls, layer, desc, bgColor) {
     if (!_map || !Array.isArray(items)) return;
-    var icon = _makeEmojiIcon(emoji, 34, cls);
+    var icon = _makeEmojiIcon(emoji, 32, cls, 0.5, bgColor || '#444');
     items.forEach(function(c) {
       if (!c.lat || !c.lng) return;
       var extra = '';
@@ -512,15 +520,15 @@
       var popup = _buildPopup(c.name || 'Resource', c.address, desc, extra);
       var marker = L.marker([c.lat, c.lng], { icon: icon, alt: c.name || 'Resource' })
         .bindPopup(popup, { maxWidth: 300 }).addTo(layer);
-      _markerRegistry[_markerKey(c.lat, c.lng)] = { marker: marker, emoji: emoji, cls: cls, size: 34 };
+      _markerRegistry[_markerKey(c.lat, c.lng)] = { marker: marker, emoji: emoji, cls: cls, size: 32, bgColor: bgColor || '#444' };
     });
   }
 
-  function plotDentalClinics(items)  { _plotOverpassItems(items, '🦷', 'bfm-dental-icon',  _layers.dental,  'Dental clinic'); }
-  function plotMentalHealth(items)   { _plotOverpassItems(items, '🧠', 'bfm-mental-icon',  _layers.mental,  'Counseling & mental health services'); }
-  function plotFoodPantries(items)   { _plotOverpassItems(items, '🍱', 'bfm-food-icon',    _layers.food,    'Food pantry — free food assistance'); }
-  function plotFarmersMarkets(items) { _plotOverpassItems(items, '🥕', 'bfm-markets-icon', _layers.markets, 'Farmers market — accepts SNAP/EBT'); }
-  function plotCoolingCenters(items) { _plotOverpassItems(items, '❄️', 'bfm-cooling-icon', _layers.cooling, 'Cooling/warming center — free public shelter'); }
+  function plotDentalClinics(items)  { _plotOverpassItems(items, '🦷', 'bfm-dental-icon',  _layers.dental,  'Dental clinic',                          '#0277bd'); }
+  function plotMentalHealth(items)   { _plotOverpassItems(items, '🧠', 'bfm-mental-icon',  _layers.mental,  'Counseling & mental health services',     '#4527a0'); }
+  function plotFoodPantries(items)   { _plotOverpassItems(items, '🍱', 'bfm-food-icon',    _layers.food,    'Food pantry — free food assistance',      '#bf360c'); }
+  function plotFarmersMarkets(items) { _plotOverpassItems(items, '🥕', 'bfm-markets-icon', _layers.markets, 'Farmers market — accepts SNAP/EBT',       '#1b5e20'); }
+  function plotCoolingCenters(items) { _plotOverpassItems(items, '❄️', 'bfm-cooling-icon', _layers.cooling, 'Cooling/warming center — free public shelter', '#0d47a1'); }
 
   /**
    * setUserLocation(lat, lng, address)
@@ -537,8 +545,7 @@
       _userCircle = null;
     }
 
-    // 42 px, anchored at the BOTTOM so the house base sits on the coordinate
-    var icon = _makeEmojiIcon('🏠', 42, 'bfm-home-icon', 1.0);
+    var icon = _makeLocationPin(40);
 
     var popupHtml = _buildPopup(
       'Your Location',
@@ -715,7 +722,7 @@
     var entry = _markerRegistry[key];
     if (!entry) return;
     _highlightedEntry = entry;
-    var bigIcon = _makeEmojiIcon(entry.emoji, 50, entry.cls + ' bfm-highlight-icon');
+    var bigIcon = _makeEmojiIcon(entry.emoji, 46, entry.cls + ' bfm-highlight-icon', 0.5, entry.bgColor);
     entry.marker.setIcon(bigIcon);
     entry.marker.openPopup();
   }
@@ -727,7 +734,7 @@
   function clearHighlight() {
     if (!_highlightedEntry) return;
     var e = _highlightedEntry;
-    e.marker.setIcon(_makeEmojiIcon(e.emoji, e.size, e.cls));
+    e.marker.setIcon(_makeEmojiIcon(e.emoji, e.size, e.cls, 0.5, e.bgColor));
     e.marker.closePopup();
     _highlightedEntry = null;
   }
