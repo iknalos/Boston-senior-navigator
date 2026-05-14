@@ -833,7 +833,7 @@
     // Update SNAP link to centre on the searched location
     var snapLink = document.getElementById('snap-link');
     if (snapLink) {
-      snapLink.href = 'https://www.google.com/maps/search/SNAP+EBT+grocery+store/@'
+      snapLink.href = 'https://www.google.com/maps/search/grocery+store/@'
         + location.lat.toFixed(5) + ',' + location.lng.toFixed(5) + ',14z';
     }
 
