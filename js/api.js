@@ -521,6 +521,119 @@
   // Keep old name as alias for backwards compatibility
   const searchBostonAddresses = searchAddresses;
 
+  // ─── ArcGIS helper ────────────────────────────────────────────────────────────
+
+  async function _fetchArcGISGeoJSON(url) {
+    const res = await fetch(url + '&resultRecordCount=2000');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  /**
+   * Fetch Massachusetts Councils on Aging (Senior Centers) from MassGIS.
+   * Covers all 350+ COAs across the state.
+   * @returns {Promise<Array<{name, address, phone, website, lat, lng}>>}
+   */
+  async function fetchSeniorCenters() {
+    console.log('[BostonAPI] fetchSeniorCenters');
+    try {
+      const data = await _fetchArcGISGeoJSON(
+        'https://arcgisserver.digital.mass.gov/arcgisserver/rest/services/AGOL/Councils_on_Aging/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson'
+      );
+      return (data.features || [])
+        .filter(f => f.geometry && f.geometry.coordinates)
+        .map(f => {
+          const p = f.properties || {};
+          const city  = p.CITY  || '';
+          const state = p.STATE || 'MA';
+          const zip   = p.ZIP   || '';
+          const addr  = [p.ADDRESS, city, state + (zip ? ' ' + zip : '')].filter(Boolean).join(', ');
+          return {
+            name:    (p.LOCATION_NAME || 'Senior Center').trim(),
+            address: addr,
+            phone:   p.PHONE_NUMBER || '',
+            website: p.WEBSITE      || '',
+            lat:     f.geometry.coordinates[1],
+            lng:     f.geometry.coordinates[0],
+          };
+        })
+        .filter(c => c.lat && c.lng);
+    } catch (err) {
+      console.error('[BostonAPI] fetchSeniorCenters failed:', err);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch Massachusetts Community Health Centers from MassGIS.
+   * Free / sliding-scale primary care clinics across the state.
+   * @returns {Promise<Array<{name, address, phone, website, type, lat, lng}>>}
+   */
+  async function fetchCommunityHealthCenters() {
+    console.log('[BostonAPI] fetchCommunityHealthCenters');
+    try {
+      const data = await _fetchArcGISGeoJSON(
+        'https://arcgisserver.digital.mass.gov/arcgisserver/rest/services/AGOL/CommunityHealthCenters/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson'
+      );
+      return (data.features || [])
+        .filter(f => f.geometry && f.geometry.coordinates)
+        .map(f => {
+          const p = f.properties || {};
+          const city  = p.CITY  || '';
+          const state = p.STATE || 'MA';
+          const zip   = p.ZIP   || '';
+          const addr  = [p.ADDRESS, city, state + (zip ? ' ' + zip : '')].filter(Boolean).join(', ');
+          return {
+            name:    (p.NAME || 'Health Center').trim(),
+            address: addr,
+            phone:   p.PHONE   || '',
+            website: p.WEBSITE || '',
+            type:    p.SERVICE_TYPE || '',
+            lat:     f.geometry.coordinates[1],
+            lng:     f.geometry.coordinates[0],
+          };
+        })
+        .filter(c => c.lat && c.lng);
+    } catch (err) {
+      console.error('[BostonAPI] fetchCommunityHealthCenters failed:', err);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch Boston Community Centers (BCYF) from the City of Boston ArcGIS.
+   * These centers offer senior programs, meals, fitness, and social activities.
+   * @returns {Promise<Array<{name, address, phone, lat, lng}>>}
+   */
+  async function fetchCommunityCenters() {
+    console.log('[BostonAPI] fetchCommunityCenters');
+    try {
+      const res = await fetch(
+        'https://services.arcgis.com/sFnw0xNflSi8J0uh/arcgis/rest/services/Community_Centers/FeatureServer/0/query?where=1%3D1&outFields=*&f=json'
+      );
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      return (data.features || [])
+        .filter(f => f.attributes && f.attributes.POINT_X && f.attributes.POINT_Y)
+        .map(f => {
+          const a   = f.attributes;
+          const zip = a.ZIP ? ('0' + a.ZIP).slice(-5) : '';
+          const addr = [a.STREET, (a.NEIGH || '') + ', Boston', 'MA' + (zip ? ' ' + zip : '')].filter(Boolean).join(', ');
+          return {
+            name:    (a.SITE || 'Community Center').trim(),
+            address: addr,
+            phone:   a.PHONE || '',
+            lat:     a.POINT_Y,
+            lng:     a.POINT_X,
+          };
+        })
+        .filter(c => c.lat && c.lng);
+    } catch (err) {
+      console.error('[BostonAPI] fetchCommunityCenters failed:', err);
+      return [];
+    }
+  }
+
   // ─── OSRM Routing ────────────────────────────────────────────────────────────
   // Walking uses routing.openstreetmap.de/routed-foot — a dedicated pedestrian
   // graph (uses sidewalks, paths, park cuts; avoids highways).
@@ -1097,6 +1210,9 @@
     geocodeAddress,
     searchAddresses,
     searchBostonAddresses,
+    fetchSeniorCenters,
+    fetchCommunityHealthCenters,
+    fetchCommunityCenters,
     fetchOSRMRoute,
     fetchMBTANearbyStops,
     fetchMBTAPredictions,
