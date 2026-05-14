@@ -220,7 +220,7 @@
   // ---------------------------------------------------------------------------
   function _addLegend(map) {
     var Legend = L.Control.extend({
-      options: { position: 'bottomright' },
+      options: { position: 'bottomleft' },
       onAdd: function () {
         var div = L.DomUtil.create('div', 'bfm-legend');
         div.setAttribute('role', 'region');
@@ -343,7 +343,7 @@
     };
 
     _layerControl = L.control.layers(null, overlays, {
-      collapsed: false,
+      collapsed: true,
       position: 'topright',
     }).addTo(_map);
 
