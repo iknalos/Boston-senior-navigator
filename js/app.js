@@ -52,6 +52,9 @@
   let autocompleteTimer = null, selectedSuggestion = null;
   let currentLocation = null;
   let currentDest = null;
+  let searchRadius = 1;          // miles — driven by radius selector
+  let _lastHazards = [];         // cached so radius change re-renders without re-fetching
+  let _enabledOptionals = new Set(); // which optional category chips are on
 
   // Navigation state
   let navWatchId     = null;
@@ -801,36 +804,34 @@
   // Render all sidebar cards + map markers for the current cached state.
   // Safe to call multiple times — clears data layers and redraws.
   function _applyResults(location, address, hazards) {
-    const nearbyHospitals  = filterByRadius(allHospitals,       location.lat, location.lng, 3);
-    const nearbyParks      = filterByRadius(allParks,            location.lat, location.lng, 1.5);
-    const nearbySeniors    = filterByRadius(allSeniorCenters,    location.lat, location.lng, 3);
-    const nearbyHealth     = filterByRadius(allHealthCenters,    location.lat, location.lng, 3);
-    const nearbyCommunity  = filterByRadius(allCommunityCenters, location.lat, location.lng, 2);
+    const r  = searchRadius;
+    const rl = ' within ' + r + ' mi';
+
+    const nearbyHospitals = filterByRadius(allHospitals, location.lat, location.lng, r);
+    const nearbyParks     = filterByRadius(allParks,     location.lat, location.lng, r);
 
     if (map) {
       BostonMap.clearDataLayers();
       BostonMap.plotHospitals(nearbyHospitals);
       BostonMap.plotParks(nearbyParks);
       BostonMap.plotHazards(hazards);
-      BostonMap.plotSeniorCenters(nearbySeniors);
-      BostonMap.plotHealthCenters(nearbyHealth);
-      BostonMap.plotCommunityCenters(nearbyCommunity);
+      if (_enabledOptionals.has('seniors'))   BostonMap.plotSeniorCenters(filterByRadius(allSeniorCenters,    location.lat, location.lng, r));
+      if (_enabledOptionals.has('health'))    BostonMap.plotHealthCenters(filterByRadius(allHealthCenters,    location.lat, location.lng, r));
+      if (_enabledOptionals.has('community')) BostonMap.plotCommunityCenters(filterByRadius(allCommunityCenters, location.lat, location.lng, r));
     }
 
-    hospitalCount.textContent  = nearbyHospitals.length  || (allHospitals.length       ? '0' : '…');
-    parkCount.textContent      = nearbyParks.length       || (allParks.length           ? '0' : '…');
-    hazardCount.textContent    = hazards.length;
-    seniorsCount.textContent   = nearbySeniors.length     || (allSeniorCenters.length   ? '0' : '…');
-    healthCount.textContent    = nearbyHealth.length      || (allHealthCenters.length   ? '0' : '…');
-    communityCount.textContent = nearbyCommunity.length   || (allCommunityCenters.length? '0' : '…');
+    // Update radius labels
+    document.getElementById('hosp-radius-label').textContent  = rl;
+    document.getElementById('parks-radius-label').textContent = rl;
+
+    hospitalCount.textContent = nearbyHospitals.length || (allHospitals.length ? '0' : '…');
+    parkCount.textContent     = nearbyParks.length     || (allParks.length     ? '0' : '…');
+    hazardCount.textContent   = hazards.length;
     setVulnerabilityBadge(medianVulnScore());
     resultsAddress.textContent = address;
 
-    renderNearestList(hospList,      nearbyHospitals, 'name', location.lat, location.lng, 8);
-    renderNearestList(parksList,     nearbyParks,     'name', location.lat, location.lng, 8);
-    renderNearestList(seniorsList,   nearbySeniors,   'name', location.lat, location.lng, 8);
-    renderNearestList(healthList,    nearbyHealth,    'name', location.lat, location.lng, 8);
-    renderNearestList(communityList, nearbyCommunity, 'name', location.lat, location.lng, 8);
+    renderNearestList(hospList,  nearbyHospitals, 'name', location.lat, location.lng, 8);
+    renderNearestList(parksList, nearbyParks,     'name', location.lat, location.lng, 8);
 
     if (!nearbyParks.length) {
       parksList.innerHTML = '<li class="nearest-item nearest-item--note">BPRD accessible parks data covers Boston proper. Nearby cities (Cambridge, Somerville) have separate park systems.</li>';
@@ -841,23 +842,46 @@
       hazardsList.innerHTML = '<li class="nearest-item nearest-item--note">Boston 311 data covers Boston proper. Cambridge, Somerville &amp; other cities have separate systems.</li>';
       hazardsList.removeAttribute('hidden');
     }
-    if (!nearbyCommunity.length && allCommunityCenters.length) {
-      communityList.innerHTML = '<li class="nearest-item nearest-item--note">Boston BCYF community centers. Other cities have their own community center networks.</li>';
-      communityList.removeAttribute('hidden');
+
+    // Optional categories — only render if enabled
+    _renderOptional('seniors',   allSeniorCenters,    seniorsCount,   seniorsList,   location, r, rl,
+      'No senior centers within ' + r + ' mi. Try increasing the radius.');
+    _renderOptional('health',    allHealthCenters,    healthCount,    healthList,    location, r, rl,
+      'No community health centers within ' + r + ' mi.');
+    _renderOptional('community', allCommunityCenters, communityCount, communityList, location, r, rl,
+      'Boston BCYF community centers. Other cities have their own networks.');
+  }
+
+  function _renderOptional(cat, allData, countEl, listEl, location, r, rl, emptyNote) {
+    if (!_enabledOptionals.has(cat)) return;
+    const nearby = filterByRadius(allData, location.lat, location.lng, r);
+    document.getElementById(cat + '-radius-label').textContent = rl;
+    countEl.textContent = nearby.length || (allData.length ? '0' : '…');
+    renderNearestList(listEl, nearby, 'name', location.lat, location.lng, 8);
+    if (!nearby.length && allData.length) {
+      listEl.innerHTML = '<li class="nearest-item nearest-item--note">' + emptyNote + '</li>';
+      listEl.removeAttribute('hidden');
     }
   }
 
   // Kick off static dataset fetches that haven't loaded yet.
   // Returns a Promise that resolves when all pending fetches finish.
+  // Pre-load only the core datasets (always shown). Optional categories load on demand.
   function _ensureStaticData() {
     const pending = [];
-    if (!allHospitals.length)        pending.push(BostonAPI.fetchHospitals().then(h            => { allHospitals        = h; }).catch(() => {}));
-    if (!allParks.length)            pending.push(BostonAPI.fetchAccessibleParks().then(p       => { allParks            = p; }).catch(() => {}));
-    if (!allVulnerability.length)    pending.push(BostonAPI.fetchSocialVulnerability().then(v   => { allVulnerability    = v; }).catch(() => {}));
-    if (!allSeniorCenters.length)    pending.push(BostonAPI.fetchSeniorCenters().then(s         => { allSeniorCenters    = s; }).catch(() => {}));
-    if (!allHealthCenters.length)    pending.push(BostonAPI.fetchCommunityHealthCenters().then(h => { allHealthCenters   = h; }).catch(() => {}));
-    if (!allCommunityCenters.length) pending.push(BostonAPI.fetchCommunityCenters().then(c      => { allCommunityCenters = c; }).catch(() => {}));
+    if (!allHospitals.length)     pending.push(BostonAPI.fetchHospitals().then(h          => { allHospitals     = h; }).catch(() => {}));
+    if (!allParks.length)         pending.push(BostonAPI.fetchAccessibleParks().then(p     => { allParks         = p; }).catch(() => {}));
+    if (!allVulnerability.length) pending.push(BostonAPI.fetchSocialVulnerability().then(v => { allVulnerability = v; }).catch(() => {}));
     return pending.length ? Promise.all(pending) : Promise.resolve();
+  }
+
+  // Load a specific optional category on demand (called when chip is toggled on).
+  async function _loadOptional(cat) {
+    try {
+      if (cat === 'seniors'   && !allSeniorCenters.length)    allSeniorCenters    = await BostonAPI.fetchSeniorCenters();
+      if (cat === 'health'    && !allHealthCenters.length)    allHealthCenters    = await BostonAPI.fetchCommunityHealthCenters();
+      if (cat === 'community' && !allCommunityCenters.length) allCommunityCenters = await BostonAPI.fetchCommunityCenters();
+    } catch (e) { console.warn('[App] optional load failed:', cat, e); }
   }
 
   async function runSearch(location, address) {
@@ -870,7 +894,7 @@
       if (!map) tryInitMap();
       if (map) {
         BostonMap.clearAll();
-        BostonMap.setUserLocation(location.lat, location.lng, address);
+        BostonMap.setUserLocation(location.lat, location.lng, address, searchRadius);
         BostonMap.flyToLocation(location.lat, location.lng);
       }
 
@@ -878,6 +902,7 @@
       // Fire hazards fetch (location-specific, always fresh) in parallel.
       const staticDone = _ensureStaticData();
       const hazards    = await BostonAPI.fetch311Hazards(location.lat, location.lng, 0.5);
+      _lastHazards     = hazards;
 
       currentLocation = location;
 
@@ -886,7 +911,7 @@
       _applyResults(location, address, hazards);
       hideLoading();
       setTimeout(function () { if (map) map.invalidateSize(); }, 100);
-      _startTransitRefresh();
+      // Transit vehicles are NOT loaded automatically — only when user picks a transit route.
 
       // If any static datasets were still loading, silently re-render when done.
       staticDone.then(function () {
@@ -919,9 +944,46 @@
 
   // ── Init ──────────────────────────────────────────────────────
   function init() {
-    // Pre-load all static datasets immediately in the background.
-    // By the time the user types and submits a search, data is ready.
+    // Pre-load core static datasets in the background immediately.
     _ensureStaticData();
+
+    // ── Radius selector ────────────────────────────────────────
+    var radiusSelect = document.getElementById('radius-select');
+    if (radiusSelect) {
+      radiusSelect.addEventListener('change', function () {
+        searchRadius = parseFloat(this.value);
+        if (map && currentLocation) {
+          BostonMap.updateCircleRadius(searchRadius);
+          _applyResults(currentLocation, resultsAddress.textContent, _lastHazards);
+        }
+      });
+    }
+
+    // ── Optional category chips ────────────────────────────────
+    document.querySelectorAll('.opt-chip').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        var cat  = this.dataset.cat;
+        var card = document.getElementById('card-' + cat);
+        if (_enabledOptionals.has(cat)) {
+          // Toggle OFF
+          _enabledOptionals.delete(cat);
+          this.classList.remove('opt-chip--on');
+          if (card) card.setAttribute('hidden', '');
+          if (map) BostonMap.clearLayer(cat);
+        } else {
+          // Toggle ON — fetch if needed, then render
+          _enabledOptionals.add(cat);
+          this.classList.add('opt-chip--loading');
+          this.disabled = true;
+          await _loadOptional(cat);
+          this.classList.remove('opt-chip--loading');
+          this.classList.add('opt-chip--on');
+          this.disabled = false;
+          if (card) card.removeAttribute('hidden');
+          if (currentLocation) _applyResults(currentLocation, resultsAddress.textContent, _lastHazards);
+        }
+      });
+    });
 
     searchBtn.addEventListener('click', handleSearch);
     locateBtn.addEventListener('click', handleLocate);
