@@ -240,6 +240,16 @@
       '  filter: drop-shadow(0 0 5px #f5a623) drop-shadow(0 0 10px #f5a62388);',
       '  display: block;',
       '}',
+      /* Collapsible legend toggle button */
+      '.bfm-legend-toggle {',
+      '  background: none; border: none; cursor: pointer;',
+      '  font-size: 14px; font-weight: 700; color: #111;',
+      '  padding: 0; display: flex; align-items: center; gap: 6px;',
+      '  white-space: nowrap; width: 100%;',
+      '}',
+      '.bfm-legend-toggle:hover { color: #1a73e8; }',
+      '.bfm-legend-content { margin-top: 10px; }',
+      '.bfm-legend--collapsed { padding: 10px 14px !important; min-width: unset !important; }',
     ].join('\n');
     document.head.appendChild(style);
   }
@@ -251,39 +261,56 @@
     var Legend = L.Control.extend({
       options: { position: 'bottomleft' },
       onAdd: function () {
-        var div = L.DomUtil.create('div', 'bfm-legend');
+        var div = L.DomUtil.create('div', 'bfm-legend bfm-legend--collapsed');
         div.setAttribute('role', 'region');
         div.setAttribute('aria-label', 'Map legend');
-        function _legendBadge(emoji, bg) {
-          return '<span class="bfm-legend-icon" aria-hidden="true" style="' +
-            'display:inline-flex;align-items:center;justify-content:center;' +
-            'width:26px;height:26px;background:' + bg + ';border-radius:50%;' +
-            'font-size:15px;box-shadow:0 1px 3px rgba(0,0,0,0.4);' +
-            'border:1.5px solid rgba(255,255,255,0.85);">' + emoji + '</span>';
+
+        function _lb(emoji, bg) {
+          return '<span style="display:inline-flex;align-items:center;justify-content:center;' +
+            'width:24px;height:24px;background:' + bg + ';border-radius:50%;font-size:14px;' +
+            'box-shadow:0 1px 3px rgba(0,0,0,0.4);border:1.5px solid rgba(255,255,255,0.85);">' + emoji + '</span>';
         }
-        function _pinBadge() {
-          return '<span class="bfm-legend-icon" aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;">' +
-            '<svg width="16" height="22" viewBox="0 0 16 22" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-            '<ellipse cx="8" cy="8" rx="8" ry="8" fill="#e53935"/>' +
-            '<path d="M8 22 L1 8 Q8 0 15 8 Z" fill="#e53935"/>' +
-            '<circle cx="8" cy="8" r="3" fill="white"/>' +
-            '</svg></span>';
+        function _pin() {
+          return '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;">' +
+            '<svg width="14" height="20" viewBox="0 0 16 22"><ellipse cx="8" cy="8" rx="8" ry="8" fill="#e53935"/>' +
+            '<path d="M8 22 L1 8 Q8 0 15 8 Z" fill="#e53935"/><circle cx="8" cy="8" r="3" fill="white"/></svg></span>';
         }
-        div.innerHTML =
-          '<h3>Map Key</h3>' +
-          '<div class="bfm-legend-row">' + _legendBadge('🏥','#c62828') + '<span class="bfm-legend-label">Hospital</span></div>' +
-          '<div class="bfm-legend-row">' + _legendBadge('🌳','#2e7d32') + '<span class="bfm-legend-label">Accessible Park</span></div>' +
-          '<div class="bfm-legend-row">' + _legendBadge('⚠️','#e65100') + '<span class="bfm-legend-label">311 Hazard</span></div>' +
-          '<div class="bfm-legend-row">' + _pinBadge()                  + '<span class="bfm-legend-label">Your Location</span></div>' +
-          '<div class="bfm-legend-row">' + _legendBadge('🏛️','#1565c0') + '<span class="bfm-legend-label">Senior Center</span></div>' +
-          '<div class="bfm-legend-row">' + _legendBadge('🩺','#00695c') + '<span class="bfm-legend-label">Health Center</span></div>' +
-          '<div class="bfm-legend-row">' + _legendBadge('🍽️','#6a1b9a') + '<span class="bfm-legend-label">Community Center</span></div>' +
-          '<div class="bfm-legend-row">' + _legendBadge('🦷','#0277bd') + '<span class="bfm-legend-label">Dental Clinic</span></div>' +
-          '<div class="bfm-legend-row">' + _legendBadge('🧠','#4527a0') + '<span class="bfm-legend-label">Mental Health</span></div>' +
-          '<div class="bfm-legend-row">' + _legendBadge('🍱','#bf360c') + '<span class="bfm-legend-label">Food Pantry</span></div>' +
-          '<div class="bfm-legend-row">' + _legendBadge('🥕','#1b5e20') + '<span class="bfm-legend-label">Farmers Market</span></div>' +
-          '<div class="bfm-legend-row">' + _legendBadge('❄️','#0d47a1') + '<span class="bfm-legend-label">Cooling Center</span></div>';
-        // Prevent map clicks from firing through the legend
+
+        var rows =
+          '<div class="bfm-legend-row">' + _lb('🏥','#c62828') + '<span class="bfm-legend-label">Hospital</span></div>' +
+          '<div class="bfm-legend-row">' + _lb('🌳','#2e7d32') + '<span class="bfm-legend-label">Accessible Park</span></div>' +
+          '<div class="bfm-legend-row">' + _lb('⚠️','#e65100') + '<span class="bfm-legend-label">311 Hazard</span></div>' +
+          '<div class="bfm-legend-row">' + _pin()              + '<span class="bfm-legend-label">Your Location</span></div>' +
+          '<div class="bfm-legend-row">' + _lb('🏛️','#1565c0') + '<span class="bfm-legend-label">Senior Center</span></div>' +
+          '<div class="bfm-legend-row">' + _lb('🩺','#00695c') + '<span class="bfm-legend-label">Health Center</span></div>' +
+          '<div class="bfm-legend-row">' + _lb('🍽️','#6a1b9a') + '<span class="bfm-legend-label">Community Center</span></div>' +
+          '<div class="bfm-legend-row">' + _lb('🦷','#0277bd') + '<span class="bfm-legend-label">Dental Clinic</span></div>' +
+          '<div class="bfm-legend-row">' + _lb('🧠','#4527a0') + '<span class="bfm-legend-label">Mental Health</span></div>' +
+          '<div class="bfm-legend-row">' + _lb('🍱','#bf360c') + '<span class="bfm-legend-label">Food Pantry</span></div>' +
+          '<div class="bfm-legend-row">' + _lb('🥕','#1b5e20') + '<span class="bfm-legend-label">Farmers Market</span></div>' +
+          '<div class="bfm-legend-row">' + _lb('❄️','#0d47a1') + '<span class="bfm-legend-label">Cooling Center</span></div>';
+
+        var btn = document.createElement('button');
+        btn.className = 'bfm-legend-toggle';
+        btn.type = 'button';
+        btn.innerHTML = '🗺 Map Key <span class="bfm-legend-arrow">▾</span>';
+        btn.setAttribute('aria-expanded', 'false');
+
+        var content = document.createElement('div');
+        content.className = 'bfm-legend-content';
+        content.innerHTML = rows;
+        content.setAttribute('hidden', '');
+
+        btn.addEventListener('click', function () {
+          var open = btn.getAttribute('aria-expanded') === 'true';
+          btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+          btn.querySelector('.bfm-legend-arrow').textContent = open ? '▾' : '▴';
+          if (open) { content.setAttribute('hidden', ''); div.classList.add('bfm-legend--collapsed'); }
+          else      { content.removeAttribute('hidden');  div.classList.remove('bfm-legend--collapsed'); }
+        });
+
+        div.appendChild(btn);
+        div.appendChild(content);
         L.DomEvent.disableClickPropagation(div);
         L.DomEvent.disableScrollPropagation(div);
         return div;
