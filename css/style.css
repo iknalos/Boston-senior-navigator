@@ -421,6 +421,100 @@ a:hover {
   text-overflow: ellipsis;
 }
 
+/* Radius selector row */
+.radius-row {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  margin-top:  6px;
+}
+
+.radius-label {
+  font-size:   var(--font-size-sm);
+  font-weight: 600;
+  color:       var(--color-navy-dark);
+  white-space: nowrap;
+}
+
+.radius-select {
+  padding:       4px 8px;
+  font-size:     var(--font-size-sm);
+  font-weight:   600;
+  border:        2px solid var(--color-navy);
+  border-radius: var(--radius-sm);
+  background:    var(--color-white);
+  color:         var(--color-navy-dark);
+  cursor:        pointer;
+  min-height:    32px;
+}
+
+.radius-select:focus-visible {
+  outline: 4px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+.radius-hint {
+  font-size:  12px;
+  color:      var(--color-mid-gray);
+  font-style: italic;
+}
+
+/* Optional resource chips */
+.optional-section {
+  margin:     6px 0 2px;
+  padding:    8px var(--space-md);
+  background: var(--color-off-white);
+  border-radius: var(--radius-sm);
+}
+
+.optional-label {
+  font-size:   12px;
+  font-weight: 600;
+  color:       var(--color-mid-gray);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin:      0 0 6px 0;
+}
+
+.optional-chips {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       6px;
+}
+
+.opt-chip {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           4px;
+  padding:       5px 10px;
+  font-size:     12px;
+  font-weight:   600;
+  border:        2px solid #ccc;
+  border-radius: 20px;
+  background:    var(--color-white);
+  color:         var(--color-mid-gray);
+  cursor:        pointer;
+  transition:    background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.opt-chip:hover {
+  border-color: var(--color-navy);
+  color:        var(--color-navy-dark);
+}
+
+.opt-chip--on {
+  background:   var(--color-navy);
+  color:        var(--color-white);
+  border-color: var(--color-navy);
+}
+
+.opt-chip--loading {
+  opacity:    0.6;
+  cursor:     wait;
+  border-color: var(--color-amber);
+  color:      var(--color-amber-dark);
+}
+
 .search-error {
   margin-top:  var(--space-sm);
   font-size:   var(--font-size-sm);
