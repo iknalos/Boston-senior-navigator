@@ -15,7 +15,7 @@
   />
 
   <!-- App styles -->
-  <link rel="stylesheet" href="css/style.css?v=46" />
+  <link rel="stylesheet" href="css/style.css?v=47" />
 </head>
 <body>
 
@@ -59,7 +59,7 @@
           <input
             id="address-input"
             class="search-input"
-            type="text"
+            type="search"
             placeholder="e.g. 1 City Hall Square, Boston, MA"
             autocomplete="off"
             aria-required="true"
@@ -71,12 +71,9 @@
         <button id="locate-btn" class="locate-btn" type="button" aria-label="Use my current location">
           &#128205; Use My Location
         </button>
-        <button id="search-btn" class="search-btn" type="button" aria-label="Find Resources near entered address">
-          Find Resources
-        </button>
       </div>
       <div class="radius-row">
-        <label for="radius-select" class="radius-label">Search radius:</label>
+        <label for="radius-select" class="radius-label">Radius:</label>
         <select id="radius-select" class="radius-select" aria-label="Search radius in miles">
           <option value="0.5">0.5 mi</option>
           <option value="1" selected>1 mi</option>
@@ -399,15 +396,15 @@
       &mdash; City of Boston Open Data
     </p>
   </footer>
-  <div class="site-version" aria-label="Version 46">v46</div>
+  <div class="site-version" aria-label="Version 47">v47</div>
 
   <!-- Leaflet JS (no integrity check to avoid SRI blocking) -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- App scripts (order matters) -->
-  <script src="js/api.js?v=46"></script>
-  <script src="js/map.js?v=46"></script>
-  <script src="js/app.js?v=46"></script>
+  <script src="js/api.js?v=47"></script>
+  <script src="js/map.js?v=47"></script>
+  <script src="js/app.js?v=47"></script>
 
 </body>
 </html>
