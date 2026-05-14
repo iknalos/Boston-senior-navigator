@@ -830,6 +830,13 @@
     setVulnerabilityBadge(medianVulnScore());
     resultsAddress.textContent = address;
 
+    // Update SNAP link to centre on the searched location
+    var snapLink = document.getElementById('snap-link');
+    if (snapLink) {
+      snapLink.href = 'https://www.google.com/maps/search/SNAP+EBT+grocery+store/@'
+        + location.lat.toFixed(5) + ',' + location.lng.toFixed(5) + ',14z';
+    }
+
     renderNearestList(hospList,  nearbyHospitals, 'name', location.lat, location.lng, 8);
     renderNearestList(parksList, nearbyParks,     'name', location.lat, location.lng, 8);
 
