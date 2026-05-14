@@ -21,6 +21,9 @@
     hazards:      null,
     userLocation: null,
     transit:      null,   // live MBTA vehicle positions
+    seniors:      null,   // Councils on Aging / Senior Centers
+    health:       null,   // Community Health Centers
+    community:    null,   // BCYF Community Centers
   };
 
   // The Leaflet layer-control instance (kept so we can re-add overlays)
@@ -234,6 +237,18 @@
           '<div class="bfm-legend-row">' +
           '  <span class="bfm-legend-icon" aria-hidden="true">&#127968;</span>' +
           '  <span class="bfm-legend-label">Your Location</span>' +
+          '</div>' +
+          '<div class="bfm-legend-row">' +
+          '  <span class="bfm-legend-icon" aria-hidden="true">&#127963;</span>' +
+          '  <span class="bfm-legend-label">Senior Center</span>' +
+          '</div>' +
+          '<div class="bfm-legend-row">' +
+          '  <span class="bfm-legend-icon" aria-hidden="true">&#129658;</span>' +
+          '  <span class="bfm-legend-label">Health Center</span>' +
+          '</div>' +
+          '<div class="bfm-legend-row">' +
+          '  <span class="bfm-legend-icon" aria-hidden="true">&#127869;</span>' +
+          '  <span class="bfm-legend-label">Community Center</span>' +
           '</div>';
         // Prevent map clicks from firing through the legend
         L.DomEvent.disableClickPropagation(div);
@@ -284,6 +299,9 @@
     _layers.hazards      = L.layerGroup().addTo(_map);
     _layers.userLocation = L.layerGroup().addTo(_map);
     _layers.transit      = L.layerGroup().addTo(_map);
+    _layers.seniors      = L.layerGroup().addTo(_map);
+    _layers.health       = L.layerGroup().addTo(_map);
+    _layers.community    = L.layerGroup().addTo(_map);
 
     // Layer control (overlays only — no base-layer switcher needed)
     var overlays = {
@@ -292,6 +310,9 @@
       '<span style="font-size:16px;">&#9888;&#65039; 311 Hazards</span>': _layers.hazards,
       '<span style="font-size:16px;">&#127968; Your Location</span>': _layers.userLocation,
       '<span style="font-size:16px;">&#128652; Live Transit</span>': _layers.transit,
+      '<span style="font-size:16px;">&#127963; Senior Centers</span>': _layers.seniors,
+      '<span style="font-size:16px;">&#129658; Health Centers</span>': _layers.health,
+      '<span style="font-size:16px;">&#127869; Community Centers</span>': _layers.community,
     };
 
     _layerControl = L.control.layers(null, overlays, {
@@ -387,6 +408,69 @@
       L.marker([h.lat, h.lng], { icon: icon, alt: title })
         .bindPopup(popup, { maxWidth: 300 })
         .addTo(_layers.hazards);
+    });
+  }
+
+  /**
+   * plotSeniorCenters(centers)
+   * Expects: { name, address, phone, website, lat, lng }
+   */
+  function plotSeniorCenters(centers) {
+    if (!_map) return;
+    if (!Array.isArray(centers)) return;
+    var icon = _makeEmojiIcon('🏛️', 34, 'bfm-seniors-icon');
+    centers.forEach(function (c) {
+      if (c.lat == null || c.lng == null) return;
+      var extra = '';
+      if (c.phone)   extra += '<p class="bfm-popup-meta"><strong>Phone:</strong> ' + _esc(c.phone) + '</p>';
+      if (c.website) extra += '<p class="bfm-popup-meta"><a href="' + _esc(c.website) + '" target="_blank" rel="noopener">Website</a></p>';
+      var popup = _buildPopup(c.name, c.address, 'Council on Aging — meals, activities, transportation & more.', extra);
+      var marker = L.marker([c.lat, c.lng], { icon: icon, alt: c.name })
+        .bindPopup(popup, { maxWidth: 300 })
+        .addTo(_layers.seniors);
+      _markerRegistry[_markerKey(c.lat, c.lng)] = { marker: marker, emoji: '🏛️', cls: 'bfm-seniors-icon', size: 34 };
+    });
+  }
+
+  /**
+   * plotHealthCenters(centers)
+   * Expects: { name, address, phone, website, type, lat, lng }
+   */
+  function plotHealthCenters(centers) {
+    if (!_map) return;
+    if (!Array.isArray(centers)) return;
+    var icon = _makeEmojiIcon('🩺', 34, 'bfm-health-icon');
+    centers.forEach(function (c) {
+      if (c.lat == null || c.lng == null) return;
+      var extra = '';
+      if (c.type)    extra += '<p class="bfm-popup-meta"><strong>Type:</strong> ' + _esc(c.type) + '</p>';
+      if (c.phone)   extra += '<p class="bfm-popup-meta"><strong>Phone:</strong> ' + _esc(c.phone) + '</p>';
+      if (c.website) extra += '<p class="bfm-popup-meta"><a href="' + _esc(c.website) + '" target="_blank" rel="noopener">Website</a></p>';
+      var popup = _buildPopup(c.name, c.address, 'Free / sliding-scale primary care & preventive health services.', extra);
+      var marker = L.marker([c.lat, c.lng], { icon: icon, alt: c.name })
+        .bindPopup(popup, { maxWidth: 300 })
+        .addTo(_layers.health);
+      _markerRegistry[_markerKey(c.lat, c.lng)] = { marker: marker, emoji: '🩺', cls: 'bfm-health-icon', size: 34 };
+    });
+  }
+
+  /**
+   * plotCommunityCenters(centers)
+   * Expects: { name, address, phone, lat, lng }
+   */
+  function plotCommunityCenters(centers) {
+    if (!_map) return;
+    if (!Array.isArray(centers)) return;
+    var icon = _makeEmojiIcon('🍽️', 34, 'bfm-community-icon');
+    centers.forEach(function (c) {
+      if (c.lat == null || c.lng == null) return;
+      var extra = '';
+      if (c.phone) extra += '<p class="bfm-popup-meta"><strong>Phone:</strong> ' + _esc(c.phone) + '</p>';
+      var popup = _buildPopup(c.name, c.address, 'Boston community center — senior programs, free meals & fitness.', extra);
+      var marker = L.marker([c.lat, c.lng], { icon: icon, alt: c.name })
+        .bindPopup(popup, { maxWidth: 300 })
+        .addTo(_layers.community);
+      _markerRegistry[_markerKey(c.lat, c.lng)] = { marker: marker, emoji: '🍽️', cls: 'bfm-community-icon', size: 34 };
     });
   }
 
@@ -718,6 +802,9 @@
     plotHospitals: plotHospitals,
     plotParks: plotParks,
     plotHazards: plotHazards,
+    plotSeniorCenters: plotSeniorCenters,
+    plotHealthCenters: plotHealthCenters,
+    plotCommunityCenters: plotCommunityCenters,
     setUserLocation: setUserLocation,
     clearAll: clearAll,
     flyToLocation: flyToLocation,
