@@ -15,7 +15,7 @@
   />
 
   <!-- App styles -->
-  <link rel="stylesheet" href="css/style.css?v=36" />
+  <link rel="stylesheet" href="css/style.css?v=37" />
 </head>
 <body>
 
@@ -125,6 +125,45 @@
           </div>
         </div>
 
+        <!-- Senior Centers card -->
+        <div class="result-card result-card--seniors" role="region" aria-labelledby="seniors-heading">
+          <div class="result-card__icon" aria-hidden="true">&#127963;</div>
+          <div class="result-card__body">
+            <h3 class="result-card__heading" id="seniors-heading">Senior Centers</h3>
+            <p class="result-card__count">
+              <span id="seniors-count" class="count-number">—</span>
+              <span class="count-label"> within 3 mi</span>
+            </p>
+            <ul id="seniors-list" class="nearest-list" hidden></ul>
+          </div>
+        </div>
+
+        <!-- Health Centers card -->
+        <div class="result-card result-card--health" role="region" aria-labelledby="health-heading">
+          <div class="result-card__icon" aria-hidden="true">&#129658;</div>
+          <div class="result-card__body">
+            <h3 class="result-card__heading" id="health-heading">Free Health Centers</h3>
+            <p class="result-card__count">
+              <span id="health-count" class="count-number">—</span>
+              <span class="count-label"> within 3 mi</span>
+            </p>
+            <ul id="health-list" class="nearest-list" hidden></ul>
+          </div>
+        </div>
+
+        <!-- Community Centers card -->
+        <div class="result-card result-card--community" role="region" aria-labelledby="community-heading">
+          <div class="result-card__icon" aria-hidden="true">&#127869;</div>
+          <div class="result-card__body">
+            <h3 class="result-card__heading" id="community-heading">Community Centers &amp; Meals</h3>
+            <p class="result-card__count">
+              <span id="community-count" class="count-number">—</span>
+              <span class="count-label"> within 2 mi</span>
+            </p>
+            <ul id="community-list" class="nearest-list" hidden></ul>
+          </div>
+        </div>
+
         <!-- Vulnerability badge -->
         <div class="vulnerability-section" role="region" aria-labelledby="vuln-heading">
           <h3 class="vulnerability-heading" id="vuln-heading">Neighborhood Risk Level</h3>
@@ -223,15 +262,15 @@
       &mdash; City of Boston Open Data
     </p>
   </footer>
-  <div class="site-version" aria-label="Version 36">v36</div>
+  <div class="site-version" aria-label="Version 37">v37</div>
 
   <!-- Leaflet JS (no integrity check to avoid SRI blocking) -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- App scripts (order matters) -->
-  <script src="js/api.js?v=36"></script>
-  <script src="js/map.js?v=36"></script>
-  <script src="js/app.js?v=36"></script>
+  <script src="js/api.js?v=37"></script>
+  <script src="js/map.js?v=37"></script>
+  <script src="js/app.js?v=37"></script>
 
 </body>
 </html>
