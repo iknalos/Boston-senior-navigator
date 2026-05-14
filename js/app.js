@@ -978,7 +978,14 @@
       // static datasets show "…" if still loading.
       _applyResults(location, address, hazards);
       hideLoading();
-      setTimeout(function () { if (map) map.invalidateSize(); }, 100);
+      setTimeout(function () {
+        if (map) map.invalidateSize();
+        // On mobile, scroll map into view so user sees it immediately
+        if (window.innerWidth < 768) {
+          var mapEl = document.getElementById('map');
+          if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 150);
       // Transit vehicles are NOT loaded automatically — only when user picks a transit route.
 
       // Fire Overpass fetches for any currently-enabled Overpass categories
