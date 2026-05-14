@@ -1675,6 +1675,7 @@ body.font-large .opt-chip { font-size: 14px; padding: 7px 12px; }
   white-space: nowrap;
 }
 .place-phone:hover { text-decoration: underline; }
+.place-gmaps { color: #1558d6; }
 .nearest-list li { align-items: flex-start; flex-wrap: wrap; }
 
 /* --- 23. New optional card colors --- */
