@@ -999,6 +999,8 @@
           if (currentLocation === location) {
             _applyResults(location, address, hazards);
           }
+        }).catch(function(err) {
+          console.error('overpassDone re-render failed:', err);
         });
       }
 
@@ -1007,6 +1009,8 @@
         if (currentLocation === location) {
           _applyResults(location, address, hazards);
         }
+      }).catch(function (err) {
+        console.error('staticDone re-render failed:', err);
       });
 
     } catch (err) {
@@ -1140,6 +1144,10 @@
     navStopBtn.addEventListener('click', stopNavigation);
 
     tryInitMap();
+
+    // Pre-fetch static datasets immediately so they're ready before the user searches.
+    // This avoids the race between the hospital API and the first _applyResults call.
+    _ensureStaticData().catch(function () {});
 
     // ── URL param restore ──────────────────────────────────────
     var params = new URLSearchParams(window.location.search);
