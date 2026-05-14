@@ -932,30 +932,61 @@ a:hover {
     --sidebar-width:  100%;
   }
 
+  /* Allow the whole page to scroll on mobile */
+  body {
+    height: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
   .site-header {
-    padding: 4px var(--space-md);
+    padding: 6px var(--space-md);
   }
 
   .site-title {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
+  }
+
+  /* Hide tagline on very small screens to save header space */
+  .site-tagline {
+    display: none;
   }
 
   .search-section {
-    padding: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
   }
 
+  /* Input full width; locate + search buttons side-by-side below */
   .search-row {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
   }
-
+  .search-row > div:first-child {
+    flex: 0 0 100%;
+  }
+  .locate-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    font-size: 15px;
+    padding: 10px 8px;
+  }
   .search-btn {
-    width:    100%;
-    min-width: unset;
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    font-size: 15px;
+    padding: 10px 8px;
   }
 
-  /* Stack: map first (so it appears above fold), then sidebar */
+  /* Hide radius drag hint — not meaningful on touch */
+  .radius-hint {
+    display: none;
+  }
+
+  /* Map above sidebar */
   .main-layout {
-    flex-direction: column-reverse;
+    flex-direction: column;
     overflow:       visible;
     height:         auto;
   }
@@ -969,11 +1000,25 @@ a:hover {
   }
 
   .map-wrapper {
-    position: relative;
-    width:    100%;
-    height:   55vw;
-    min-height: 260px;
-    flex:     none;
+    position:   relative;
+    width:      100%;
+    height:     50vh;
+    min-height: 300px;
+    max-height: 420px;
+    flex:       none;
+  }
+
+  /* Chips — bigger touch targets */
+  .optional-chip {
+    min-height: 44px;
+    padding:    8px 14px;
+    font-size:  15px;
+  }
+
+  /* Results heading row */
+  .results-heading-row {
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   .site-footer {
