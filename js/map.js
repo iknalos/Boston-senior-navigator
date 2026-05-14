@@ -761,6 +761,21 @@
   }
 
   /**
+   * clearDataLayers()
+   * Clears only the data marker layers (hospitals, parks, hazards, seniors,
+   * health, community). Leaves user-location and transit layers untouched.
+   */
+  function clearDataLayers() {
+    clearHighlight();
+    _markerRegistry = {};
+    ['hospitals', 'parks', 'hazards', 'seniors', 'health', 'community'].forEach(function (key) {
+      if (_layers[key]) _layers[key].clearLayers();
+    });
+    clearHoverLine();
+    clearRoute();
+  }
+
+  /**
    * clearAll()
    * Removes all markers and the user-location circle from the map.
    * The base tile layer is unaffected.
@@ -805,6 +820,7 @@
     plotSeniorCenters: plotSeniorCenters,
     plotHealthCenters: plotHealthCenters,
     plotCommunityCenters: plotCommunityCenters,
+    clearDataLayers: clearDataLayers,
     setUserLocation: setUserLocation,
     clearAll: clearAll,
     flyToLocation: flyToLocation,
