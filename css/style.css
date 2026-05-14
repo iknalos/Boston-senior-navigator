@@ -26,6 +26,9 @@
   --color-hospitals:   #1a5c3a;  /* deep green  */
   --color-parks:       #2e6b1f;  /* forest green */
   --color-hazards:     #8b2e00;  /* burnt orange  */
+  --color-seniors:     #6a3d9a;  /* purple       */
+  --color-health:      #00695c;  /* teal         */
+  --color-community:   #b5560b;  /* warm brown   */
   --color-low-risk:    #1a5c3a;
   --color-med-risk:    #7a5000;
   --color-high-risk:   #8b0000;
@@ -524,6 +527,18 @@ a:hover {
   border-left: 5px solid var(--color-hazards);
 }
 
+.result-card--seniors {
+  border-left: 5px solid var(--color-seniors);
+}
+
+.result-card--health {
+  border-left: 5px solid var(--color-health);
+}
+
+.result-card--community {
+  border-left: 5px solid var(--color-community);
+}
+
 .result-card__icon {
   font-size:   1.5rem;
   line-height: 1;
@@ -549,9 +564,13 @@ a:hover {
   line-height: 1;
 }
 
-.result-card--hospitals .count-number { color: var(--color-hospitals); }
-.result-card--parks    .count-number { color: var(--color-parks);    }
-.result-card--hazards  .count-number { color: var(--color-hazards);  }
+.result-card--hospitals  .count-number { color: var(--color-hospitals); }
+.result-card--parks      .count-number { color: var(--color-parks);    }
+.result-card--hazards    .count-number { color: var(--color-hazards);  }
+.result-card--seniors    .count-number { color: var(--color-seniors);  }
+.result-card--health     .count-number { color: var(--color-health);   }
+.result-card--community  .count-number { color: var(--color-community);}
+
 
 .count-label {
   font-size: 13px;
