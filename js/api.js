@@ -144,6 +144,7 @@
           address:      r.Address     || r.address     || '',
           lat:          parseFloat(r.Latitude  || r.POINT_Y || 0),
           lng:          parseFloat(r.Longitude || r.POINT_X || 0),
+          phone:        r.Phone       || r.phone       || r.PHONE || '',
           // The hospitals dataset doesn't carry a neighborhood field;
           // zip code is included as a lightweight proxy.
           neighborhood: r.Zipcode     || r.zipcode     || '',
@@ -1177,6 +1178,116 @@
     }
   }
 
+  // ─── Overpass API ────────────────────────────────────────────────────────────
+
+  async function _fetchOverpass(lat, lng, radiusMiles, tagSets) {
+    const r = Math.round(radiusMiles * 1609.34);
+    const parts = tagSets.map(function(tags) {
+      const kv = Object.entries(tags).map(function(entry) {
+        return '["' + entry[0] + '"="' + entry[1] + '"]';
+      }).join('');
+      return 'node' + kv + '(around:' + r + ',' + lat + ',' + lng + ');'
+           + 'way'  + kv + '(around:' + r + ',' + lat + ',' + lng + ');';
+    }).join('\n');
+    const query = '[out:json][timeout:15];(\n' + parts + '\n);out center;';
+    const res = await _withTimeout(fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST', body: 'data=' + encodeURIComponent(query)
+    }), 15000);
+    if (!res.ok) throw new Error('Overpass HTTP ' + res.status);
+    const data = await res.json();
+    return (data.elements || []).map(function(el) {
+      const t = el.tags || {};
+      return {
+        name: t.name || t['name:en'] || '',
+        address: [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ') || t['addr:full'] || '',
+        phone: t.phone || t['contact:phone'] || t['phone:1'] || '',
+        website: t.website || t['contact:website'] || '',
+        lat: el.lat || (el.center && el.center.lat),
+        lng: el.lon || (el.center && el.center.lon),
+      };
+    }).filter(function(p) { return p.lat && p.lng && p.name; });
+  }
+
+  async function fetchDentalClinics(lat, lng, radiusMiles) {
+    try {
+      return await _fetchOverpass(lat, lng, radiusMiles || 5, [
+        { amenity: 'dentist' },
+      ]);
+    } catch (err) {
+      console.error('[BostonAPI] fetchDentalClinics failed:', err);
+      return [];
+    }
+  }
+
+  async function fetchMentalHealth(lat, lng, radiusMiles) {
+    try {
+      return await _fetchOverpass(lat, lng, radiusMiles || 5, [
+        { healthcare: 'psychiatry' },
+        { healthcare: 'psychotherapist' },
+        { healthcare: 'counselling' },
+      ]);
+    } catch (err) {
+      console.error('[BostonAPI] fetchMentalHealth failed:', err);
+      return [];
+    }
+  }
+
+  async function fetchFoodPantries(lat, lng, radiusMiles) {
+    try {
+      return await _fetchOverpass(lat, lng, radiusMiles || 5, [
+        { amenity: 'food_bank' },
+        { social_facility: 'food_bank' },
+      ]);
+    } catch (err) {
+      console.error('[BostonAPI] fetchFoodPantries failed:', err);
+      return [];
+    }
+  }
+
+  async function fetchFarmersMarkets(lat, lng, radiusMiles) {
+    try {
+      return await _fetchOverpass(lat, lng, radiusMiles || 5, [
+        { amenity: 'marketplace' },
+      ]);
+    } catch (err) {
+      console.error('[BostonAPI] fetchFarmersMarkets failed:', err);
+      return [];
+    }
+  }
+
+  async function fetchCoolingCenters(lat, lng, radiusMiles) {
+    try {
+      return await _fetchOverpass(lat, lng, radiusMiles || 5, [
+        { amenity: 'cooling_centre' },
+        { cooling_centre: 'yes' },
+        { amenity: 'shelter', shelter_type: 'public' },
+      ]);
+    } catch (err) {
+      console.error('[BostonAPI] fetchCoolingCenters failed:', err);
+      return [];
+    }
+  }
+
+  async function fetchWeatherAlerts(lat, lng) {
+    try {
+      const res = await _withTimeout(fetch(
+        'https://api.weather.gov/alerts/active?point=' + lat + ',' + lng,
+        { headers: { Accept: 'application/geo+json', 'User-Agent': 'BostonSeniorNavigator/1.0' } }
+      ), 8000);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.features || [])
+        .filter(function(f) { return /heat|cold|winter|freeze|wind.chill|frost/i.test(f.properties.event || ''); })
+        .map(function(f) { return {
+          event: f.properties.event || '',
+          headline: f.properties.headline || f.properties.event || '',
+          isHeat: /heat/i.test(f.properties.event || ''),
+        }; });
+    } catch (err) {
+      return [];
+    }
+  }
+
   // ─── Export ───────────────────────────────────────────────────────────────────
 
   const BostonAPI = {
@@ -1199,6 +1310,12 @@
     fetchMBTAVehicles,
     fetchRouteStopsNearPoint,
     fetchNearbyStopsByType,
+    fetchDentalClinics,
+    fetchMentalHealth,
+    fetchFoodPantries,
+    fetchFarmersMarkets,
+    fetchCoolingCenters,
+    fetchWeatherAlerts,
 
     // Expose constants for callers that want to do their own queries
     CKAN_BASE,
