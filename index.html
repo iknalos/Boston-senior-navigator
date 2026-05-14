@@ -15,7 +15,7 @@
   />
 
   <!-- App styles -->
-  <link rel="stylesheet" href="css/style.css?v=38" />
+  <link rel="stylesheet" href="css/style.css?v=39" />
 </head>
 <body>
 
@@ -69,6 +69,17 @@
           Find Resources
         </button>
       </div>
+      <div class="radius-row">
+        <label for="radius-select" class="radius-label">Search radius:</label>
+        <select id="radius-select" class="radius-select" aria-label="Search radius in miles">
+          <option value="0.5">0.5 mi</option>
+          <option value="1" selected>1 mi</option>
+          <option value="2">2 mi</option>
+          <option value="3">3 mi</option>
+          <option value="5">5 mi</option>
+        </select>
+        <span class="radius-hint">— drag the map circle to explore further</span>
+      </div>
       <p id="search-error" class="search-error" role="alert" aria-live="assertive" hidden></p>
     </div>
   </section>
@@ -93,7 +104,7 @@
             <h3 class="result-card__heading" id="hosp-heading">Hospitals</h3>
             <p class="result-card__count">
               <span id="hosp-count" class="count-number">—</span>
-              <span class="count-label"> within 2 mi</span>
+              <span class="count-label" id="hosp-radius-label"></span>
             </p>
             <ul id="hosp-list" class="nearest-list" hidden></ul>
           </div>
@@ -106,7 +117,7 @@
             <h3 class="result-card__heading" id="parks-heading">Accessible Parks</h3>
             <p class="result-card__count">
               <span id="parks-count" class="count-number">—</span>
-              <span class="count-label"> within 1.5 mi</span>
+              <span class="count-label" id="parks-radius-label"></span>
             </p>
             <ul id="parks-list" class="nearest-list" hidden></ul>
           </div>
@@ -125,40 +136,50 @@
           </div>
         </div>
 
-        <!-- Senior Centers card -->
-        <div class="result-card result-card--seniors" role="region" aria-labelledby="seniors-heading">
+        <!-- Optional resource chips — click to load & show -->
+        <div class="optional-section">
+          <p class="optional-label">More resources:</p>
+          <div class="optional-chips">
+            <button class="opt-chip" id="opt-seniors"   data-cat="seniors"    type="button">&#127963; Senior Centers</button>
+            <button class="opt-chip" id="opt-health"    data-cat="health"     type="button">&#129658; Health Centers</button>
+            <button class="opt-chip" id="opt-community" data-cat="community"  type="button">&#127869; Community Centers</button>
+          </div>
+        </div>
+
+        <!-- Senior Centers card (hidden until chip activated) -->
+        <div class="result-card result-card--seniors" id="card-seniors" role="region" aria-labelledby="seniors-heading" hidden>
           <div class="result-card__icon" aria-hidden="true">&#127963;</div>
           <div class="result-card__body">
             <h3 class="result-card__heading" id="seniors-heading">Senior Centers</h3>
             <p class="result-card__count">
               <span id="seniors-count" class="count-number">—</span>
-              <span class="count-label"> within 3 mi</span>
+              <span class="count-label" id="seniors-radius-label"></span>
             </p>
             <ul id="seniors-list" class="nearest-list" hidden></ul>
           </div>
         </div>
 
-        <!-- Health Centers card -->
-        <div class="result-card result-card--health" role="region" aria-labelledby="health-heading">
+        <!-- Health Centers card (hidden until chip activated) -->
+        <div class="result-card result-card--health" id="card-health" role="region" aria-labelledby="health-heading" hidden>
           <div class="result-card__icon" aria-hidden="true">&#129658;</div>
           <div class="result-card__body">
             <h3 class="result-card__heading" id="health-heading">Free Health Centers</h3>
             <p class="result-card__count">
               <span id="health-count" class="count-number">—</span>
-              <span class="count-label"> within 3 mi</span>
+              <span class="count-label" id="health-radius-label"></span>
             </p>
             <ul id="health-list" class="nearest-list" hidden></ul>
           </div>
         </div>
 
-        <!-- Community Centers card -->
-        <div class="result-card result-card--community" role="region" aria-labelledby="community-heading">
+        <!-- Community Centers card (hidden until chip activated) -->
+        <div class="result-card result-card--community" id="card-community" role="region" aria-labelledby="community-heading" hidden>
           <div class="result-card__icon" aria-hidden="true">&#127869;</div>
           <div class="result-card__body">
             <h3 class="result-card__heading" id="community-heading">Community Centers &amp; Meals</h3>
             <p class="result-card__count">
               <span id="community-count" class="count-number">—</span>
-              <span class="count-label"> within 2 mi</span>
+              <span class="count-label" id="community-radius-label"></span>
             </p>
             <ul id="community-list" class="nearest-list" hidden></ul>
           </div>
@@ -262,15 +283,15 @@
       &mdash; City of Boston Open Data
     </p>
   </footer>
-  <div class="site-version" aria-label="Version 38">v38</div>
+  <div class="site-version" aria-label="Version 39">v39</div>
 
   <!-- Leaflet JS (no integrity check to avoid SRI blocking) -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- App scripts (order matters) -->
-  <script src="js/api.js?v=38"></script>
-  <script src="js/map.js?v=38"></script>
-  <script src="js/app.js?v=38"></script>
+  <script src="js/api.js?v=39"></script>
+  <script src="js/map.js?v=39"></script>
+  <script src="js/app.js?v=39"></script>
 
 </body>
 </html>
