@@ -21,6 +21,16 @@
   const seniorsList    = document.getElementById('seniors-list');
   const healthList     = document.getElementById('health-list');
   const communityList  = document.getElementById('community-list');
+  const dentalCount    = document.getElementById('dental-count');
+  const mentalCount    = document.getElementById('mental-count');
+  const foodCount      = document.getElementById('food-count');
+  const marketsCount   = document.getElementById('markets-count');
+  const coolingCount   = document.getElementById('cooling-count');
+  const dentalList     = document.getElementById('dental-list');
+  const mentalList     = document.getElementById('mental-list');
+  const foodList       = document.getElementById('food-list');
+  const marketsList    = document.getElementById('markets-list');
+  const coolingList    = document.getElementById('cooling-list');
 
   const resultsPanel       = document.getElementById('results-panel');
   const directionsPanel    = document.getElementById('directions-panel');
@@ -49,6 +59,7 @@
   let map = null;
   let allHospitals = [], allParks = [], allVulnerability = [];
   let allSeniorCenters = [], allHealthCenters = [], allCommunityCenters = [];
+  let allDentalClinics = [], allMentalHealth = [], allFoodPantries = [], allFarmersMarkets = [], allCoolingCenters = [];
   let autocompleteTimer = null, selectedSuggestion = null;
   let currentLocation = null;
   let currentDest = null;
@@ -712,8 +723,9 @@
       const iLat  = parseFloat(item.lat);
       const iLng  = parseFloat(item.lng);
       li.innerHTML =
-        '<span class="place-name">' + _esc(iName) + '</span>' +
-        '<span class="place-dist">' + formatDist(d) + '</span>';
+        '<span class="place-main"><span class="place-name">' + _esc(iName) + '</span>' +
+        (item.phone ? '<a class="place-phone" href="tel:' + _esc(item.phone) + '" onclick="event.stopPropagation()">' + _esc(item.phone) + '</a>' : '') +
+        '</span><span class="place-dist">' + formatDist(d) + '</span>';
       li.title = 'Click for directions';
       li.setAttribute('tabindex', '0');
       li.setAttribute('role', 'button');
@@ -818,6 +830,11 @@
       if (_enabledOptionals.has('seniors'))   BostonMap.plotSeniorCenters(filterByRadius(allSeniorCenters,    location.lat, location.lng, r));
       if (_enabledOptionals.has('health'))    BostonMap.plotHealthCenters(filterByRadius(allHealthCenters,    location.lat, location.lng, r));
       if (_enabledOptionals.has('community')) BostonMap.plotCommunityCenters(filterByRadius(allCommunityCenters, location.lat, location.lng, r));
+      if (_enabledOptionals.has('dental'))    BostonMap.plotDentalClinics(filterByRadius(allDentalClinics,    location.lat, location.lng, r));
+      if (_enabledOptionals.has('mental'))    BostonMap.plotMentalHealth(filterByRadius(allMentalHealth,      location.lat, location.lng, r));
+      if (_enabledOptionals.has('food'))      BostonMap.plotFoodPantries(filterByRadius(allFoodPantries,      location.lat, location.lng, r));
+      if (_enabledOptionals.has('markets'))   BostonMap.plotFarmersMarkets(filterByRadius(allFarmersMarkets,  location.lat, location.lng, r));
+      if (_enabledOptionals.has('cooling'))   BostonMap.plotCoolingCenters(filterByRadius(allCoolingCenters,  location.lat, location.lng, r));
     }
 
     // Update radius labels
@@ -857,6 +874,16 @@
       'No community health centers within ' + r + ' mi.');
     _renderOptional('community', allCommunityCenters, communityCount, communityList, location, r, rl,
       'Boston BCYF community centers. Other cities have their own networks.');
+    _renderOptional('dental',    allDentalClinics,    dentalCount,    dentalList,    location, r, rl,
+      'No dental clinics found within ' + r + ' mi.');
+    _renderOptional('mental',    allMentalHealth,     mentalCount,    mentalList,    location, r, rl,
+      'No mental health services found within ' + r + ' mi.');
+    _renderOptional('food',      allFoodPantries,     foodCount,      foodList,      location, r, rl,
+      'No food pantries found within ' + r + ' mi.');
+    _renderOptional('markets',   allFarmersMarkets,   marketsCount,   marketsList,   location, r, rl,
+      'No farmers markets found within ' + r + ' mi.');
+    _renderOptional('cooling',   allCoolingCenters,   coolingCount,   coolingList,   location, r, rl,
+      'No cooling/warming centers found within ' + r + ' mi.');
   }
 
   function _renderOptional(cat, allData, countEl, listEl, location, r, rl, emptyNote) {
@@ -888,6 +915,11 @@
       if (cat === 'seniors'   && !allSeniorCenters.length)    allSeniorCenters    = await BostonAPI.fetchSeniorCenters();
       if (cat === 'health'    && !allHealthCenters.length)    allHealthCenters    = await BostonAPI.fetchCommunityHealthCenters();
       if (cat === 'community' && !allCommunityCenters.length) allCommunityCenters = await BostonAPI.fetchCommunityCenters();
+      if (cat === 'dental' && currentLocation)    allDentalClinics    = await BostonAPI.fetchDentalClinics(currentLocation.lat, currentLocation.lng, 5);
+      if (cat === 'mental' && currentLocation)    allMentalHealth     = await BostonAPI.fetchMentalHealth(currentLocation.lat, currentLocation.lng, 5);
+      if (cat === 'food'   && currentLocation)    allFoodPantries     = await BostonAPI.fetchFoodPantries(currentLocation.lat, currentLocation.lng, 5);
+      if (cat === 'markets' && currentLocation)   allFarmersMarkets   = await BostonAPI.fetchFarmersMarkets(currentLocation.lat, currentLocation.lng, 5);
+      if (cat === 'cooling' && currentLocation)   allCoolingCenters   = await BostonAPI.fetchCoolingCenters(currentLocation.lat, currentLocation.lng, 5);
     } catch (e) { console.warn('[App] optional load failed:', cat, e); }
   }
 
@@ -897,6 +929,11 @@
     _stopTransitRefresh();
     showPanel(resultsPanel);
     currentDest = null;
+
+    // Clear location-specific Overpass caches for fresh fetch
+    allDentalClinics = []; allMentalHealth = []; allFoodPantries = [];
+    allFarmersMarkets = []; allCoolingCenters = [];
+
     try {
       if (!map) tryInitMap();
       if (map) {
@@ -904,6 +941,18 @@
         BostonMap.setUserLocation(location.lat, location.lng, address, searchRadius);
         BostonMap.flyToLocation(location.lat, location.lng);
       }
+
+      // Fire weather alerts in background (not awaited)
+      BostonAPI.fetchWeatherAlerts(location.lat, location.lng).then(function(alerts) {
+        var banner = document.getElementById('weather-banner');
+        if (!banner) return;
+        if (!alerts.length) { banner.setAttribute('hidden', ''); return; }
+        var a = alerts[0];
+        banner.className = 'weather-banner weather-banner--' + (a.isHeat ? 'heat' : 'cold');
+        var textEl = banner.querySelector('.weather-banner__text');
+        if (textEl) textEl.textContent = a.headline || a.event;
+        banner.removeAttribute('hidden');
+      }).catch(function() {});
 
       // Fire static fetches in background (no-op if already cached).
       // Fire hazards fetch (location-specific, always fresh) in parallel.
@@ -919,6 +968,20 @@
       hideLoading();
       setTimeout(function () { if (map) map.invalidateSize(); }, 100);
       // Transit vehicles are NOT loaded automatically — only when user picks a transit route.
+
+      // Fire Overpass fetches for any currently-enabled Overpass categories
+      var overpassCats = ['dental', 'mental', 'food', 'markets', 'cooling'];
+      var activeOverpass = overpassCats.filter(function(c) { return _enabledOptionals.has(c); });
+      if (activeOverpass.length) {
+        var overpassDone = Promise.all(activeOverpass.map(function(c) {
+          return _loadOptional(c).catch(function() {});
+        }));
+        overpassDone.then(function() {
+          if (currentLocation === location) {
+            _applyResults(location, address, hazards);
+          }
+        });
+      }
 
       // If any static datasets were still loading, silently re-render when done.
       staticDone.then(function () {
@@ -953,6 +1016,45 @@
   function init() {
     // Pre-load core static datasets in the background immediately.
     _ensureStaticData();
+
+    // ── Font size toggle ───────────────────────────────────────
+    var fontToggleBtn = document.getElementById('font-toggle');
+    if (fontToggleBtn) {
+      fontToggleBtn.addEventListener('click', function () {
+        var isLarge = document.body.classList.toggle('font-large');
+        this.setAttribute('aria-pressed', isLarge ? 'true' : 'false');
+        this.textContent = isLarge ? 'A−' : 'A+';
+      });
+    }
+
+    // ── Share button ───────────────────────────────────────────
+    var shareBtn = document.getElementById('share-btn');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', function () {
+        if (!currentLocation) return;
+        var params = new URLSearchParams({
+          lat: currentLocation.lat.toFixed(6),
+          lng: currentLocation.lng.toFixed(6),
+          r: searchRadius,
+        });
+        var url = window.location.origin + window.location.pathname + '?' + params.toString();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(function () {
+            alert('Link copied to clipboard!');
+          }).catch(function () {
+            prompt('Copy this link:', url);
+          });
+        } else {
+          prompt('Copy this link:', url);
+        }
+      });
+    }
+
+    // ── Print button ───────────────────────────────────────────
+    var printBtn = document.getElementById('print-btn');
+    if (printBtn) {
+      printBtn.addEventListener('click', function () { window.print(); });
+    }
 
     // ── Radius selector ────────────────────────────────────────
     var radiusSelect = document.getElementById('radius-select');
@@ -1019,6 +1121,16 @@
     navStopBtn.addEventListener('click', stopNavigation);
 
     tryInitMap();
+
+    // ── URL param restore ──────────────────────────────────────
+    var params = new URLSearchParams(window.location.search);
+    var sharedLat = parseFloat(params.get('lat'));
+    var sharedLng = parseFloat(params.get('lng'));
+    var sharedR   = parseFloat(params.get('r'));
+    if (!isNaN(sharedLat) && !isNaN(sharedLng)) {
+      if (!isNaN(sharedR) && radiusSelect) { searchRadius = sharedR; radiusSelect.value = sharedR; }
+      runSearch({ lat: sharedLat, lng: sharedLng }, 'Shared Location');
+    }
   }
 
   if (document.readyState === 'complete') { init(); }
